@@ -184,6 +184,8 @@ void print_vector(vector<double>& vec, const string& name, int n=0)
 }
 
 
+  int lane = 1;
+  double ref_vel = 0; // mph
 
 int main() {
   uWS::Hub h;
@@ -230,8 +232,6 @@ int main() {
     // The 2 signifies a websocket event
     //auto sdata = string(data).substr(0, length);
     //cout << sdata << endl;
-  int lane = 1;
-  double ref_vel = 49.5; // mph
 
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
 
@@ -265,8 +265,37 @@ int main() {
 
             int prev_size = previous_path_x.size();
 
-            std::cout << "x:" << car_x << " y:" << car_y << " yaw:" << car_yaw  << " s:" << car_s << " d:" << car_d << " prev size:" << prev_size << std::endl;
+            std::cout << "v:" << car_speed << " x:" << car_x << " y:" << car_y << " yaw:" << car_yaw  << " s:" << car_s << " d:" << car_d << " prev size:" << prev_size << std::endl;
 
+
+            if (prev_size == 0) {
+              end_path_s = car_s;
+            }
+
+            bool too_close = false;
+
+            for (int i=0; i < sensor_fusion.size(); i++) {
+              float d = sensor_fusion[i][6];
+
+              if (d < (2+4*lane+2) && d > (2+4*lane-2)) {
+                double vx = sensor_fusion[i][3];
+                double vy = sensor_fusion[i][4];
+                double check_speed = sqrt(vx*vx + vy*vy);
+                double check_car_s = sensor_fusion[i][5];
+
+                check_car_s += (double)prev_size*0.02*check_speed;
+
+                if ((check_car_s > end_path_s) && ((check_car_s-end_path_s)<30)) {
+                  too_close = true;
+                }
+              }
+            }
+
+            if (too_close) {
+              ref_vel -= 0.224;
+            } else if (ref_vel < 49.5) {
+              ref_vel += 0.224;
+            }
 
             vector<double> ptsx;
             vector<double> ptsy;
