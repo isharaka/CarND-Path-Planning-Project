@@ -15,6 +15,9 @@ using namespace std;
 // for convenience
 using json = nlohmann::json;
 
+
+#define PREVIOUS_PATH_OVERLAP    (25)
+
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
@@ -264,6 +267,7 @@ int main() {
           	vector<vector<double>> sensor_fusion = j[1]["sensor_fusion"];
 
             int prev_size = previous_path_x.size();
+            int path_overlap = std::min(PREVIOUS_PATH_OVERLAP, prev_size);
 
             std::cout << "v:" << car_speed << " x:" << car_x << " y:" << car_y << " yaw:" << car_yaw  << " s:" << car_s << " d:" << car_d << " prev size:" << prev_size << std::endl;
 
@@ -304,7 +308,7 @@ int main() {
             double ref_y = car_y;
             double ref_yaw = deg2rad(car_yaw);
 
-            if (prev_size < 2) {
+            if (path_overlap < 2) {
               double prev_car_x = car_x - cos(ref_yaw);
               double prev_car_y = car_y - sin(ref_yaw);
 
@@ -314,11 +318,11 @@ int main() {
               ptsy.push_back(prev_car_y);
               ptsy.push_back(car_y);
             } else {
-              ref_x = previous_path_x[prev_size-1];
-              ref_y = previous_path_y[prev_size-1];
+              ref_x = previous_path_x[path_overlap-1];
+              ref_y = previous_path_y[path_overlap-1];
 
-              double ref_x_prev = previous_path_x[prev_size-2];
-              double ref_y_prev = previous_path_y[prev_size-2];
+              double ref_x_prev = previous_path_x[path_overlap-2];
+              double ref_y_prev = previous_path_y[path_overlap-2];
               ref_yaw = atan2(ref_y - ref_y_prev, ref_x - ref_x_prev);
 
               ptsx.push_back(ref_x_prev);
@@ -362,7 +366,7 @@ int main() {
           	vector<double> next_x_vals;
           	vector<double> next_y_vals;
 
-            for(int i = 0; i < previous_path_x.size(); i++)
+            for(int i = 0; i < path_overlap; i++)
             {
               next_x_vals.push_back(previous_path_x[i]);
               next_y_vals.push_back(previous_path_y[i]);
@@ -375,7 +379,7 @@ int main() {
             double x_add_on = 0;
 
 
-            for(int i = 0; i < 50-previous_path_x.size(); i++) {
+            for(int i = 0; i < 50-path_overlap; i++) {
               double N = (target_dist/(0.02*ref_vel/2.24));
               double x_point = x_add_on + target_x/N;
               double y_point = s(x_point);
