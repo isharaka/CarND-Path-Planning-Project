@@ -186,27 +186,34 @@ vector<double> getFrenet(double x, double y, double theta, const vector<double> 
 class Rosenbrock1
 {
 private:
-    int n;
+  tk::spline x, y, dx, dy;
+  double x0, y0;
 public:
-    Rosenbrock1(int n_) : n(n_) {}
-    double operator()(const VectorXd& x, VectorXd& grad)
+    Rosenbrock1(double x0, double y0, vector<double>& wp_s, vector<double>& wp_x, vector<double>& wp_y, vector<double>& wp_dx, vector<double>& wp_dy)
     {
-      #if 0
-        double fx = 0.0;
-        for(int i = 0; i < n; i += 2)
-        {
-            double t1 = 1.0 - x[i];
-            double t2 = 10 * (x[i + 1] - x[i] * x[i]);
-            grad[i + 1] = 20 * t2;
-            grad[i]     = -2.0 * (x[i] * grad[i + 1] + t1);
-            fx += t1 * t1 + t2 * t2;
-        }
-        return fx;
-      #else
-      double f = x[0]*x[0] + 6.0*x[0] - 40.0;
-      grad[0] = 2 * f *(2.0*x[0] + 6.0);
-      f = f*f;
-      #endif
+      x.set_points(wp_s, wp_x);
+      y.set_points(wp_s, wp_y);
+      dx.set_points(wp_s, wp_dx);
+      dy.set_points(wp_s, wp_dy);
+    }
+
+    double operator()(const VectorXd& _s, VectorXd& grad)
+    {
+      double s = _s[0];
+
+      double x_ = x(s);
+      double y_ = y(s);
+      double dx_ = dx(s);
+      double dy_ = dy(s);
+
+      double x__ = x.deriv(1, s);
+      double y__ = y.deriv(1, s);
+      double dx__ = dx.deriv(1, s);
+      double dy__ = dy.deriv(1, s);
+
+      double f = dy_*x_ - dx_*y_ - dy_*x0 + dx_*y0;
+      grad[0] = 2 * f * (dy_*x__ + dy__*x_ - dx_*y__ - dx__*y_ - x0*dy__ + y0*dx__);
+      return f*f;
     }
 };
 
@@ -523,7 +530,7 @@ int main() {
     std::cout << "x:" << xy[i][0] << " y:" << xy[i][1] <<" s:" << sd[0] << " d:" << sd[1] << std::endl;
   }
 
-  //exit(0);
+  exit(0);
 
 
   h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
