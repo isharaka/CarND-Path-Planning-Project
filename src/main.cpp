@@ -17,11 +17,31 @@ using json = nlohmann::json;
 
 
 #define PREVIOUS_PATH_OVERLAP    (25)
+#define TRACK_LENGTH             (6945.55405474)
 
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
 double rad2deg(double x) { return x * 180 / pi(); }
+
+void print_vector(vector<double>& vec, const string& name, int n=0)
+{
+  int start = 0;
+  int end = vec.size();
+
+  std::cout << name << ' ';
+
+  if (n > 0) {
+    end = std::min(n,end);
+  } else if (n < 0) {
+    start = std::max(end+n, start);
+  }
+
+  for (int i=start; i < end; i++)
+    std::cout << vec[i] << ' ';
+
+  std::cout << std::endl;
+}
 
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
@@ -88,6 +108,18 @@ int NextWaypoint(double x, double y, double theta, const vector<double> &maps_x,
   }
 
   return closestWaypoint;
+}
+
+int NextWaypoint(double s, const vector<double> &maps_s)
+{
+  int prev_wp = -1;
+
+  while(s > maps_s[prev_wp+1] && (prev_wp < (int)(maps_s.size()-1) ))
+  {
+    prev_wp++;
+  }
+
+  return (prev_wp+1)%maps_s.size();
 }
 
 // Transform from Cartesian x,y coordinates to Frenet s,d coordinates
@@ -167,24 +199,62 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 
 }
 
-void print_vector(vector<double>& vec, const string& name, int n=0)
+// Transform from Frenet s,d coordinates to Cartesian x,y
+vector<double> _getXY(double s, double d, const vector<double> &maps_s, const vector<double> &maps_x, const vector<double> &maps_y,
+  const vector<double> &maps_dx, const vector<double> &maps_dy)
 {
-  int start = 0;
-  int end = vec.size();
+  enum {
+    WAYPOINTS_SPAN = 4,
+  };
 
-  std::cout << name << ' ';
+  const int num_waypoints = maps_s.size();
+  vector<double> waypoints_x, waypoints_y, waypoints_s, waypoints_dx, waypoints_dy;
 
-  if (n > 0) {
-    end = std::min(n,end);
-  } else if (n < 0) {
-    start = std::max(end+n, start);
+  int next_wp = NextWaypoint(s, maps_s);
+
+  double s_correction = 0.0;
+  double s_transition = TRACK_LENGTH;
+
+  double _s = 0.0;
+  int wp = 0;
+
+  for (int i = -WAYPOINTS_SPAN; i <= WAYPOINTS_SPAN; ++i) {
+    wp = i + next_wp + num_waypoints;
+
+    while(wp >= num_waypoints)
+      wp -= num_waypoints;
+
+    double map_s = maps_s[wp];
+
+    if (map_s < _s) {
+      s_correction = TRACK_LENGTH;
+      s_transition = map_s;
+    }
+
+    _s = map_s;
+
+    waypoints_s.push_back(map_s + s_correction);
+    waypoints_x.push_back(maps_x[wp]);
+    waypoints_y.push_back(maps_y[wp]);
+    waypoints_dx.push_back(maps_dx[wp]);
+    waypoints_dy.push_back(maps_dy[wp]);
   }
 
-  for (int i=start; i < end; i++)
-    std::cout << vec[i] << ' ';
+  tk::spline x_spline, y_spline, dx_spline, dy_spline;
 
-  std::cout << std::endl;
+  x_spline.set_points(waypoints_s, waypoints_x);
+  y_spline.set_points(waypoints_s, waypoints_y);
+  dx_spline.set_points(waypoints_s, waypoints_dx);
+  dy_spline.set_points(waypoints_s, waypoints_dy);
+
+
+  if (s >= s_transition && s <= maps_s[wp ? wp-1 : num_waypoints-1])
+    s += s_correction;
+
+  return {x_spline(s) + d*dx_spline(s), y_spline(s) + d*dy_spline(s)};
 }
+
+
 
 
   int lane = 1;
@@ -226,6 +296,23 @@ int main() {
   	map_waypoints_dx.push_back(d_x);
   	map_waypoints_dy.push_back(d_y);
   }
+
+  double sd[][2]={{0, 0},{120.7,10},{6875,-10},{6920,0}};
+  //double sd[][2]={{384, 0},{390.7,0},{745,0},{760,0}};
+
+  for (int i=0; i < sizeof(sd)/sizeof(sd[0]); ++i) {
+    vector<double> xy = getXY(sd[i][0], sd[i][1], map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    std::cout << "s:" << sd[i][0] << " d:" << sd[i][1] <<" x:" << xy[0] << " y:" << xy[1] << std::endl;
+  }
+
+  std::cout << std::endl;
+
+  for (int i=0; i < sizeof(sd)/sizeof(sd[0]); ++i) {
+    vector<double> xy = _getXY(sd[i][0], sd[i][1], map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
+    std::cout << "s:" << sd[i][0] << " d:" << sd[i][1] <<" x:" << xy[0] << " y:" << xy[1] << std::endl;
+  }
+
+  //exit(0);
 
 
   h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
@@ -272,35 +359,6 @@ int main() {
             std::cout << "v:" << car_speed << " x:" << car_x << " y:" << car_y << " yaw:" << car_yaw  << " s:" << car_s << " d:" << car_d << " prev size:" << prev_size << std::endl;
 
 
-            if (prev_size == 0) {
-              end_path_s = car_s;
-            }
-
-            bool too_close = false;
-
-            for (int i=0; i < sensor_fusion.size(); i++) {
-              float d = sensor_fusion[i][6];
-
-              if (d < (2+4*lane+2) && d > (2+4*lane-2)) {
-                double vx = sensor_fusion[i][3];
-                double vy = sensor_fusion[i][4];
-                double check_speed = sqrt(vx*vx + vy*vy);
-                double check_car_s = sensor_fusion[i][5];
-
-                check_car_s += (double)prev_size*0.02*check_speed;
-
-                if ((check_car_s > end_path_s) && ((check_car_s-end_path_s)<30)) {
-                  too_close = true;
-                }
-              }
-            }
-
-            if (too_close) {
-              ref_vel -= 0.224;
-            } else if (ref_vel < 49.5) {
-              ref_vel += 0.224;
-            }
-
             vector<double> ptsx;
             vector<double> ptsy;
 
@@ -332,36 +390,13 @@ int main() {
               ptsy.push_back(ref_y);              
             }
 
-            vector<double> next_wp0 = getXY(car_s+30, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-            vector<double> next_wp1 = getXY(car_s+60, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-            vector<double> next_wp2 = getXY(car_s+90, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+            double init_x = ptsx[1];
+            double init_y = ptsy[1];
 
-            ptsx.push_back(next_wp0[0]);
-            ptsx.push_back(next_wp1[0]);
-            ptsx.push_back(next_wp2[0]);
+            vector<double> init_frenet = getFrenet(init_x, init_y, ref_yaw, map_waypoints_x, map_waypoints_y);
 
-            ptsy.push_back(next_wp0[1]);
-            ptsy.push_back(next_wp1[1]);
-            ptsy.push_back(next_wp2[1]);
-
-            print_vector(ptsx, "ptsx");
-            print_vector(ptsy, "ptsy");
-
-
-            for (int i=0; i < ptsx.size(); i++) {
-              double shift_x = ptsx[i] - ref_x;
-              double shift_y = ptsy[i] - ref_y;
-
-              ptsx[i] = shift_x*cos(ref_yaw) + shift_y*sin(ref_yaw);
-              ptsy[i] = -shift_x*sin(ref_yaw) + shift_y*cos(ref_yaw);
-            }
-
-            tk::spline s;
-
-            print_vector(ptsx, "car ptsx");
-            print_vector(ptsy, "car ptsy");
-
-            s.set_points(ptsx, ptsy);
+            double init_s = init_frenet[0];
+            double init_d = init_frenet[1];
 
           	vector<double> next_x_vals;
           	vector<double> next_y_vals;
@@ -372,25 +407,15 @@ int main() {
               next_y_vals.push_back(previous_path_y[i]);
             }
 
-            double target_x = 30.0;
-            double target_y = s(target_x);
-            double target_dist = sqrt(target_x*target_x + target_y*target_y);
+            double dist_inc = 0.5;
+            for(int i = 0; i < 50-path_overlap; i++)
+            {
+              double next_s = init_s + (i+1)*dist_inc;
+              double next_d = 6;
 
-            double x_add_on = 0;
-
-
-            for(int i = 0; i < 50-path_overlap; i++) {
-              double N = (target_dist/(0.02*ref_vel/2.24));
-              double x_point = x_add_on + target_x/N;
-              double y_point = s(x_point);
-
-              x_add_on = x_point;
-
-              double x_point_map = ref_x + x_point*cos(ref_yaw) - y_point*sin(ref_yaw);
-              double y_point_map = ref_y + x_point*sin(ref_yaw) + y_point*cos(ref_yaw);
-
-              next_x_vals.push_back(x_point_map);
-              next_y_vals.push_back(y_point_map);
+              vector<double> xy = _getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
+              next_x_vals.push_back(xy[0]);
+              next_y_vals.push_back(xy[1]);
             }
 
             print_vector(next_x_vals, "next_x_vals", -5);
