@@ -10,16 +10,12 @@
 #include "json.hpp"
 #include "spline.h"
 
-#include "LBFGSpp/LBFGS.h"
-
 using namespace std;
 
 using Eigen::VectorXf;
 using Eigen::MatrixXf;
 using Eigen::VectorXd;
 using Eigen::MatrixXd;
-using LBFGSpp::LBFGSParam;
-using LBFGSpp::LBFGSSolver;
 
 // for convenience
 using json = nlohmann::json;
@@ -180,43 +176,6 @@ vector<double> getFrenet(double x, double y, double theta, const vector<double> 
 
 }
 
-
-
-
-class Rosenbrock1
-{
-private:
-  tk::spline x, y, dx, dy;
-  double x0, y0;
-public:
-    Rosenbrock1(double x0, double y0, vector<double>& wp_s, vector<double>& wp_x, vector<double>& wp_y, vector<double>& wp_dx, vector<double>& wp_dy)
-    {
-      x.set_points(wp_s, wp_x);
-      y.set_points(wp_s, wp_y);
-      dx.set_points(wp_s, wp_dx);
-      dy.set_points(wp_s, wp_dy);
-    }
-
-    double operator()(const VectorXd& _s, VectorXd& grad)
-    {
-      double s = _s[0];
-
-      double x_ = x(s);
-      double y_ = y(s);
-      double dx_ = dx(s);
-      double dy_ = dy(s);
-
-      double x__ = x.deriv(1, s);
-      double y__ = y.deriv(1, s);
-      double dx__ = dx.deriv(1, s);
-      double dy__ = dy.deriv(1, s);
-
-      double f = dy_*x_ - dx_*y_ - dy_*x0 + dx_*y0;
-      grad[0] = 2 * f * (dy_*x__ + dy__*x_ - dx_*y__ - dx__*y_ - x0*dy__ + y0*dx__);
-      return f*f;
-    }
-};
-
 // Transform from Cartesian x,y coordinates to Frenet s,d coordinates
 vector<double> _getFrenet(double x, double y, double theta, const vector<double> &maps_s, const vector<double> &maps_x, const vector<double> &maps_y,
   const vector<double> &maps_dx, const vector<double> &maps_dy)
@@ -367,55 +326,6 @@ vector<double> _getXY(double s, double d, const vector<double> &maps_s, const ve
 }
 
 
-class Rosenbrock
-{
-private:
-    int n;
-public:
-    Rosenbrock(int n_) : n(n_) {}
-    double operator()(const VectorXd& x, VectorXd& grad)
-    {
-      #if 0
-        double fx = 0.0;
-        for(int i = 0; i < n; i += 2)
-        {
-            double t1 = 1.0 - x[i];
-            double t2 = 10 * (x[i + 1] - x[i] * x[i]);
-            grad[i + 1] = 20 * t2;
-            grad[i]     = -2.0 * (x[i] * grad[i + 1] + t1);
-            fx += t1 * t1 + t2 * t2;
-        }
-        return fx;
-      #else
-      double f = x[0]*x[0] + 6.0*x[0] - 40.0;
-      grad[0] = 2 * f *(2.0*x[0] + 6.0);
-      f = f*f;
-      #endif
-    }
-};
-
-
-double foo(const VectorXd& x, VectorXd& grad)
-{
-#if 0
-    const int n = x.size();
-    VectorXd d(n);
-    for(int i = 0; i < n; i++)
-        d[i] = i;
-
-    double f = (x - d).squaredNorm();
-    grad.noalias() = 2.0 * (x - d);
-#else
-    //double f = x[0]*x[0] - 12.0*x[0] + 36.0;
-    //grad[0] = 2.0*x[0] - 12.0;
-    double f = x[0]*x[0] + 6.0*x[0] - 40.0;
-    grad[0] = 2 * f *(2.0*x[0] + 6.0);
-    f = f*f;
-#endif
-
-    return f;
-}
-
 
 
   int lane = 1;
@@ -458,41 +368,6 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
-#if 0
-    const int n = 1;
-    LBFGSParam<double> param;
-    LBFGSSolver<double> solver(param);
-
-    VectorXd x(1);
-    x << -20;
-    double fx;
-    int niter = solver.minimize(foo, x, fx);
-
-    std::cout << niter << " iterations" << std::endl;
-    std::cout << "x = \n" << x.transpose() << std::endl;
-    std::cout << "f(x) = " << fx << std::endl;
-
-    return 0;
-#endif
-
-#if 0
-    const int n = 1;
-    LBFGSParam<double> param;
-    LBFGSSolver<double> solver(param);
-    Rosenbrock fun(n);
-
-    VectorXd x(1);
-    x << 3;
-    double fx;
-    int niter = solver.minimize(fun, x, fx);
-
-    std::cout << niter << " iterations" << std::endl;
-    std::cout << "x = \n" << x.transpose() << std::endl;
-    std::cout << "f(x) = " << fx << std::endl;
-
-    return 0;
-#endif
-
   double sd[][2]={{0, 0},{120.7,10},{6875,-10},{6920,0}};
   //double sd[][2]={{384, 0},{390.7,0},{745,0},{760,0}};
 
@@ -530,7 +405,7 @@ int main() {
     std::cout << "x:" << xy[i][0] << " y:" << xy[i][1] <<" s:" << sd[0] << " d:" << sd[1] << std::endl;
   }
 
-  exit(0);
+  //exit(0);
 
 
   h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
@@ -579,6 +454,8 @@ int main() {
 
             vector<double> ptsx;
             vector<double> ptsy;
+
+            vector<double> s_i, d_i, s_f, d_f;
 
             double ref_x = car_x;
             double ref_y = car_y;
