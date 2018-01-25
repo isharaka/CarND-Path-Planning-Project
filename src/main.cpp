@@ -10,7 +10,16 @@
 #include "json.hpp"
 #include "spline.h"
 
+#include "LBFGSpp/LBFGS.h"
+
 using namespace std;
+
+using Eigen::VectorXf;
+using Eigen::MatrixXf;
+using Eigen::VectorXd;
+using Eigen::MatrixXd;
+using LBFGSpp::LBFGSParam;
+using LBFGSpp::LBFGSSolver;
 
 // for convenience
 using json = nlohmann::json;
@@ -171,6 +180,102 @@ vector<double> getFrenet(double x, double y, double theta, const vector<double> 
 
 }
 
+
+
+
+class Rosenbrock1
+{
+private:
+    int n;
+public:
+    Rosenbrock1(int n_) : n(n_) {}
+    double operator()(const VectorXd& x, VectorXd& grad)
+    {
+      #if 0
+        double fx = 0.0;
+        for(int i = 0; i < n; i += 2)
+        {
+            double t1 = 1.0 - x[i];
+            double t2 = 10 * (x[i + 1] - x[i] * x[i]);
+            grad[i + 1] = 20 * t2;
+            grad[i]     = -2.0 * (x[i] * grad[i + 1] + t1);
+            fx += t1 * t1 + t2 * t2;
+        }
+        return fx;
+      #else
+      double f = x[0]*x[0] + 6.0*x[0] - 40.0;
+      grad[0] = 2 * f *(2.0*x[0] + 6.0);
+      f = f*f;
+      #endif
+    }
+};
+
+// Transform from Cartesian x,y coordinates to Frenet s,d coordinates
+vector<double> _getFrenet(double x, double y, double theta, const vector<double> &maps_s, const vector<double> &maps_x, const vector<double> &maps_y,
+  const vector<double> &maps_dx, const vector<double> &maps_dy)
+{
+  int next_wp = NextWaypoint(x,y, theta, maps_x,maps_y);
+  
+  enum {
+    WAYPOINTS_SPAN = 4,
+  };
+
+  const int num_waypoints = maps_s.size();
+  vector<double> waypoints_x, waypoints_y, waypoints_s, waypoints_dx, waypoints_dy;
+
+  double s_correction = 0.0;
+  double s_transition = TRACK_LENGTH;
+
+  double _s = 0.0;
+  int wp = 0;
+
+  for (int i = -WAYPOINTS_SPAN; i <= WAYPOINTS_SPAN; ++i) {
+    wp = i + next_wp + num_waypoints;
+
+    while(wp >= num_waypoints)
+      wp -= num_waypoints;
+
+    double map_s = maps_s[wp];
+
+    if (map_s < _s) {
+      s_correction = TRACK_LENGTH;
+      s_transition = map_s;
+    }
+
+    _s = map_s;
+
+    waypoints_s.push_back(map_s + s_correction);
+    waypoints_x.push_back(maps_x[wp]);
+    waypoints_y.push_back(maps_y[wp]);
+    waypoints_dx.push_back(maps_dx[wp]);
+    waypoints_dy.push_back(maps_dy[wp]);
+  }
+
+  tk::spline x_spline, y_spline, dx_spline, dy_spline;
+
+  x_spline.set_points(waypoints_s, waypoints_x);
+  y_spline.set_points(waypoints_s, waypoints_y);
+  dx_spline.set_points(waypoints_s, waypoints_dx);
+  dy_spline.set_points(waypoints_s, waypoints_dy);
+
+  const double s_delta = 0.5;
+
+  vector<double> fine_maps_x, fine_maps_y;
+
+  for (double s = waypoints_s[0]; s < waypoints_s[waypoints_s.size()-1] ; s += s_delta) {
+    fine_maps_x.push_back(x_spline(s));
+    fine_maps_y.push_back(y_spline(s));
+  }
+
+  vector<double> _sd = getFrenet(x, y, theta, fine_maps_x, fine_maps_y);
+
+  _sd[0] += waypoints_s[0];
+  if (_sd[0] > TRACK_LENGTH)
+    _sd[0] -= TRACK_LENGTH;
+
+  return _sd;
+}
+
 // Transform from Frenet s,d coordinates to Cartesian x,y
 vector<double> getXY(double s, double d, const vector<double> &maps_s, const vector<double> &maps_x, const vector<double> &maps_y)
 {
@@ -203,14 +308,14 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 vector<double> _getXY(double s, double d, const vector<double> &maps_s, const vector<double> &maps_x, const vector<double> &maps_y,
   const vector<double> &maps_dx, const vector<double> &maps_dy)
 {
+  int next_wp = NextWaypoint(s, maps_s);
+
   enum {
     WAYPOINTS_SPAN = 4,
   };
 
   const int num_waypoints = maps_s.size();
   vector<double> waypoints_x, waypoints_y, waypoints_s, waypoints_dx, waypoints_dy;
-
-  int next_wp = NextWaypoint(s, maps_s);
 
   double s_correction = 0.0;
   double s_transition = TRACK_LENGTH;
@@ -255,6 +360,55 @@ vector<double> _getXY(double s, double d, const vector<double> &maps_s, const ve
 }
 
 
+class Rosenbrock
+{
+private:
+    int n;
+public:
+    Rosenbrock(int n_) : n(n_) {}
+    double operator()(const VectorXd& x, VectorXd& grad)
+    {
+      #if 0
+        double fx = 0.0;
+        for(int i = 0; i < n; i += 2)
+        {
+            double t1 = 1.0 - x[i];
+            double t2 = 10 * (x[i + 1] - x[i] * x[i]);
+            grad[i + 1] = 20 * t2;
+            grad[i]     = -2.0 * (x[i] * grad[i + 1] + t1);
+            fx += t1 * t1 + t2 * t2;
+        }
+        return fx;
+      #else
+      double f = x[0]*x[0] + 6.0*x[0] - 40.0;
+      grad[0] = 2 * f *(2.0*x[0] + 6.0);
+      f = f*f;
+      #endif
+    }
+};
+
+
+double foo(const VectorXd& x, VectorXd& grad)
+{
+#if 0
+    const int n = x.size();
+    VectorXd d(n);
+    for(int i = 0; i < n; i++)
+        d[i] = i;
+
+    double f = (x - d).squaredNorm();
+    grad.noalias() = 2.0 * (x - d);
+#else
+    //double f = x[0]*x[0] - 12.0*x[0] + 36.0;
+    //grad[0] = 2.0*x[0] - 12.0;
+    double f = x[0]*x[0] + 6.0*x[0] - 40.0;
+    grad[0] = 2 * f *(2.0*x[0] + 6.0);
+    f = f*f;
+#endif
+
+    return f;
+}
+
 
 
   int lane = 1;
@@ -297,6 +451,41 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
+#if 0
+    const int n = 1;
+    LBFGSParam<double> param;
+    LBFGSSolver<double> solver(param);
+
+    VectorXd x(1);
+    x << -20;
+    double fx;
+    int niter = solver.minimize(foo, x, fx);
+
+    std::cout << niter << " iterations" << std::endl;
+    std::cout << "x = \n" << x.transpose() << std::endl;
+    std::cout << "f(x) = " << fx << std::endl;
+
+    return 0;
+#endif
+
+#if 0
+    const int n = 1;
+    LBFGSParam<double> param;
+    LBFGSSolver<double> solver(param);
+    Rosenbrock fun(n);
+
+    VectorXd x(1);
+    x << 3;
+    double fx;
+    int niter = solver.minimize(fun, x, fx);
+
+    std::cout << niter << " iterations" << std::endl;
+    std::cout << "x = \n" << x.transpose() << std::endl;
+    std::cout << "f(x) = " << fx << std::endl;
+
+    return 0;
+#endif
+
   double sd[][2]={{0, 0},{120.7,10},{6875,-10},{6920,0}};
   //double sd[][2]={{384, 0},{390.7,0},{745,0},{760,0}};
 
@@ -310,6 +499,28 @@ int main() {
   for (int i=0; i < sizeof(sd)/sizeof(sd[0]); ++i) {
     vector<double> xy = _getXY(sd[i][0], sd[i][1], map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
     std::cout << "s:" << sd[i][0] << " d:" << sd[i][1] <<" x:" << xy[0] << " y:" << xy[1] << std::endl;
+  }
+
+  std::cout << std::endl;
+
+  double xy[][2]={{1025,1157},{1370,1185},{1025 + 5*0.4,1157-5*0.9},{1370+4*0.1,1185+4*1}};
+  double a[4];
+
+  a[0] = atan2(1157.81 - 1145.318, 1025.028 - 995.2703);
+  a[1] = atan2(1185.671 - 1188.307, 1369.225 - 1340.477);
+  a[2] = atan2(1157.81 - 1145.318, 1025.028 - 995.2703);
+  a[3] = atan2(1185.671 - 1188.307, 1369.225 - 1340.477);
+
+  for (int i=0; i < sizeof(xy)/sizeof(xy[0]); ++i) {
+    vector<double> sd = getFrenet(xy[i][0], xy[i][1], a[i], map_waypoints_x, map_waypoints_y);
+    std::cout << "x:" << xy[i][0] << " y:" << xy[i][1] <<" s:" << sd[0] << " d:" << sd[1] << std::endl;
+  }
+
+  std::cout << std::endl;
+
+  for (int i=0; i < sizeof(xy)/sizeof(xy[0]); ++i) {
+    vector<double> sd = _getFrenet(xy[i][0], xy[i][1], a[i], map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
+    std::cout << "x:" << xy[i][0] << " y:" << xy[i][1] <<" s:" << sd[0] << " d:" << sd[1] << std::endl;
   }
 
   //exit(0);
@@ -393,7 +604,8 @@ int main() {
             double init_x = ptsx[1];
             double init_y = ptsy[1];
 
-            vector<double> init_frenet = getFrenet(init_x, init_y, ref_yaw, map_waypoints_x, map_waypoints_y);
+            //vector<double> init_frenet = getFrenet(init_x, init_y, ref_yaw, map_waypoints_x, map_waypoints_y);
+            vector<double> init_frenet = _getFrenet(init_x, init_y, ref_yaw, map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
 
             double init_s = init_frenet[0];
             double init_d = init_frenet[1];
@@ -413,6 +625,7 @@ int main() {
               double next_s = init_s + (i+1)*dist_inc;
               double next_d = 6;
 
+              //vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);//, map_waypoints_dx, map_waypoints_dy);
               vector<double> xy = _getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
               next_x_vals.push_back(xy[0]);
               next_y_vals.push_back(xy[1]);

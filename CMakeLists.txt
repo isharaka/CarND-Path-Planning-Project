@@ -9,6 +9,9 @@ set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 
 set(sources src/main.cpp)
 
+include_directories(src/Eigen-3.3)
+include_directories(src/LBFGSpp)
+
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
 
