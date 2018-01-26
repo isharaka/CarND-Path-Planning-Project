@@ -29,6 +29,9 @@ public:
     vector<double> getFrenet(double x, double y, double theta);
     vector<double> getXY(double s, double d);
 
+    vector<double> getDxDy(double s);
+    vector<double> getSxSy(double s);
+
 
 private:
 
@@ -44,7 +47,6 @@ private:
     vector<double> map_waypoints_s;
     vector<double> map_waypoints_dx;
     vector<double> map_waypoints_dy;
-
 
     vector<double> local_waypoints_x;
     vector<double> local_waypoints_y;

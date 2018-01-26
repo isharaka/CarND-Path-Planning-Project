@@ -156,6 +156,24 @@ vector<double> Map::getXY(double s, double d)
 }
 
 
+vector<double> Map::getDxDy(double s)
+{
+    vector<double> dxdy = {_splines->dx(s), _splines->dy(s)};
+    double magnitude = sqrt(dxdy[0]*dxdy[0] + dxdy[1]*dxdy[1]);
+
+    dxdy[0] /= magnitude;
+    dxdy[1] /= magnitude;
+
+    return dxdy;
+}
+
+vector<double> Map::getSxSy(double s)
+{
+    vector<double> dxdy = getDxDy(s);
+    return {-dxdy[1], dxdy[0]};
+}
+
+
 
 int Map::ClosestWaypoint(double x, double y, const vector<double> &maps_x, const vector<double> &maps_y)
 {
