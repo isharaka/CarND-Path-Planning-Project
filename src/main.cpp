@@ -332,6 +332,7 @@ vector<double> _getXY(double s, double d, const vector<double> &maps_s, const ve
 
   int lane = 1;
   double ref_vel = 0; // mph
+  Map * track;
 
 int main() {
   uWS::Hub h;
@@ -370,7 +371,7 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
-  Map map;
+  track = new Map();
 
   double sd[][2]={{0, 0},{120.7,10},{6875,-10},{6920,0}};
   //double sd[][2]={{384, 0},{390.7,0},{745,0},{760,0}};
@@ -384,8 +385,8 @@ int main() {
 
   for (int i=0; i < sizeof(sd)/sizeof(sd[0]); ++i) {
     //vector<double> xy = _getXY(sd[i][0], sd[i][1], map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
-    map.setLocality(sd[i][0]);
-    vector<double> xy = map.getXY(sd[i][0], sd[i][1]);
+    track->setLocality(sd[i][0]);
+    vector<double> xy = track->getXY(sd[i][0], sd[i][1]);
     std::cout << "s:" << sd[i][0] << " d:" << sd[i][1] <<" x:" << xy[0] << " y:" << xy[1] << std::endl;
   }
 
@@ -408,12 +409,12 @@ int main() {
 
   for (int i=0; i < sizeof(xy)/sizeof(xy[0]); ++i) {
     //vector<double> sd = _getFrenet(xy[i][0], xy[i][1], a[i], map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
-    map.setLocality(xy[i][0], xy[i][1], a[i]);
-    vector<double> sd = map.getFrenet(xy[i][0], xy[i][1], a[i]);
+    track->setLocality(xy[i][0], xy[i][1], a[i]);
+    vector<double> sd = track->getFrenet(xy[i][0], xy[i][1], a[i]);
     std::cout << "x:" << xy[i][0] << " y:" << xy[i][1] <<" s:" << sd[0] << " d:" << sd[1] << std::endl;
   }
 
-  exit(0);
+  //exit(0);
 
 
   h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
@@ -506,7 +507,10 @@ int main() {
             double init_y = ptsy[1];
 
             //vector<double> init_frenet = getFrenet(init_x, init_y, ref_yaw, map_waypoints_x, map_waypoints_y);
-            vector<double> init_frenet = _getFrenet(init_x, init_y, ref_yaw, map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
+            //vector<double> init_frenet = _getFrenet(init_x, init_y, ref_yaw, map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
+            track->setLocality(init_x, init_y, ref_yaw);
+            vector<double> init_frenet = track->getFrenet(init_x, init_y, ref_yaw);
+
 
             double init_s = init_frenet[0];
             double init_d = init_frenet[1];
@@ -527,7 +531,10 @@ int main() {
               double next_d = 6;
 
               //vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);//, map_waypoints_dx, map_waypoints_dy);
-              vector<double> xy = _getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
+              //vector<double> xy = _getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
+              track->setLocality(next_s);
+              vector<double> xy = track->getXY(next_s, next_d);
+
               next_x_vals.push_back(xy[0]);
               next_y_vals.push_back(xy[1]);
             }
