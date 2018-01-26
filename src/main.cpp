@@ -10,6 +10,8 @@
 #include "json.hpp"
 #include "spline.h"
 
+#include "map.h"
+
 using namespace std;
 
 using Eigen::VectorXf;
@@ -368,6 +370,8 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
+  Map map;
+
   double sd[][2]={{0, 0},{120.7,10},{6875,-10},{6920,0}};
   //double sd[][2]={{384, 0},{390.7,0},{745,0},{760,0}};
 
@@ -379,7 +383,9 @@ int main() {
   std::cout << std::endl;
 
   for (int i=0; i < sizeof(sd)/sizeof(sd[0]); ++i) {
-    vector<double> xy = _getXY(sd[i][0], sd[i][1], map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
+    //vector<double> xy = _getXY(sd[i][0], sd[i][1], map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
+    map.setLocality(sd[i][0]);
+    vector<double> xy = map.getXY(sd[i][0], sd[i][1]);
     std::cout << "s:" << sd[i][0] << " d:" << sd[i][1] <<" x:" << xy[0] << " y:" << xy[1] << std::endl;
   }
 
@@ -401,11 +407,13 @@ int main() {
   std::cout << std::endl;
 
   for (int i=0; i < sizeof(xy)/sizeof(xy[0]); ++i) {
-    vector<double> sd = _getFrenet(xy[i][0], xy[i][1], a[i], map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
+    //vector<double> sd = _getFrenet(xy[i][0], xy[i][1], a[i], map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
+    map.setLocality(xy[i][0], xy[i][1], a[i]);
+    vector<double> sd = map.getFrenet(xy[i][0], xy[i][1], a[i]);
     std::cout << "x:" << xy[i][0] << " y:" << xy[i][1] <<" s:" << sd[0] << " d:" << sd[1] << std::endl;
   }
 
-  //exit(0);
+  exit(0);
 
 
   h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
@@ -435,6 +443,7 @@ int main() {
           	double car_d = j[1]["d"];
           	double car_yaw = j[1]["yaw"];
           	double car_speed = j[1]["speed"];
+            car_speed = car_speed * 0.44704;
 
           	// Previous path data given to the Planner
           	auto previous_path_x = j[1]["previous_path_x"];
@@ -470,6 +479,14 @@ int main() {
 
               ptsy.push_back(prev_car_y);
               ptsy.push_back(car_y);
+
+              s_i.push_back(car_s);
+              s_i.push_back(car_speed);
+              s_i.push_back(0);
+
+              d_i.push_back(car_d);
+              d_i.push_back(0);
+              d_i.push_back(0);
             } else {
               ref_x = previous_path_x[path_overlap-1];
               ref_y = previous_path_y[path_overlap-1];
