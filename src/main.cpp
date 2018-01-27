@@ -24,7 +24,7 @@ using Eigen::MatrixXd;
 using json = nlohmann::json;
 
 
-#define PREVIOUS_PATH_OVERLAP    (40)
+#define PREVIOUS_PATH_OVERLAP    (25)
 #define TRACK_LENGTH             (6945.55405474)
 
 #define DT_MOTION                (0.02)
@@ -346,6 +346,10 @@ vector<double> _getXY(double s, double d, const vector<double> &maps_s, const ve
 
   int count_i = 0;
 
+
+            vector<double> next_s_vals;
+            vector<double> next_d_vals;
+
 int main() {
   uWS::Hub h;
 
@@ -398,11 +402,11 @@ int main() {
 
   for (int i=0; i < sizeof(sd)/sizeof(sd[0]); ++i) {
     //vector<double> xy = _getXY(sd[i][0], sd[i][1], map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
-    track->setLocality(sd[i][0]);
+    //track->setLocality(sd[i][0]);
     vector<double> xy = track->getXY(sd[i][0], sd[i][1]);
-    vector<double> dxdy = track->getDxDy(sd[i][0]);
+    //vector<double> dxdy = track->getDxDy(sd[i][0]);
     std::cout << "s:" << sd[i][0] << " d:" << sd[i][1] <<" x:" << xy[0] << " y:" << xy[1] <<
-      " dx:" << dxdy[0] << " dy:" << dxdy[1] << " n:" << sqrt(dxdy[0]*dxdy[0] + dxdy[1]*dxdy[1]) << std::endl;
+      /*" dx:" << dxdy[0] << " dy:" << dxdy[1] << " n:" << sqrt(dxdy[0]*dxdy[0] + dxdy[1]*dxdy[1]) <<*/ std::endl;
   }
 
   std::cout << std::endl;
@@ -424,11 +428,11 @@ int main() {
 
   for (int i=0; i < sizeof(xy)/sizeof(xy[0]); ++i) {
     //vector<double> sd = _getFrenet(xy[i][0], xy[i][1], a[i], map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
-    track->setLocality(xy[i][0], xy[i][1], a[i]);
+    //track->setLocality(xy[i][0], xy[i][1], a[i]);
     vector<double> sd = track->getFrenet(xy[i][0], xy[i][1], a[i]);
-    vector<double> dxdy = track->getDxDy(sd[0]);
+    //vector<double> dxdy = track->getDxDy(sd[0]);
     std::cout << "x:" << xy[i][0] << " y:" << xy[i][1] <<" s:" << sd[0] << " d:" << sd[1] <<
-      " dx:" << dxdy[0] << " dy:" << dxdy[1] << " n:" << sqrt(dxdy[0]*dxdy[0] + dxdy[1]*dxdy[1]) << std::endl;
+      /*" dx:" << dxdy[0] << " dy:" << dxdy[1] << " n:" << sqrt(dxdy[0]*dxdy[0] + dxdy[1]*dxdy[1]) <<*/ std::endl;
   }
 
   vector<double> aa;
@@ -470,8 +474,8 @@ int main() {
             car_speed = car_speed * 0.44704;
 
           	// Previous path data given to the Planner
-          	auto previous_path_x = j[1]["previous_path_x"];
-          	auto previous_path_y = j[1]["previous_path_y"];
+          	vector<double> previous_path_x = j[1]["previous_path_x"];
+          	vector<double> previous_path_y = j[1]["previous_path_y"];
           	// Previous path's end s and d values 
           	double end_path_s = j[1]["end_path_s"];
           	double end_path_d = j[1]["end_path_d"];
@@ -479,22 +483,72 @@ int main() {
           	// Sensor Fusion Data, a list of all other cars on the same side of the road.
           	vector<vector<double>> sensor_fusion = j[1]["sensor_fusion"];
 
+            vector<double> previous_path_s;
+            vector<double> previous_path_d;
+
+            for (int i = N_POINTS_MOTION - previous_path_x.size(); i < N_POINTS_MOTION; ++i) {
+              previous_path_s.push_back(next_s_vals[i]);
+              previous_path_d.push_back(next_d_vals[i]);
+            }
+
+
             int prev_size = previous_path_x.size();
-            int path_overlap = std::min(PREVIOUS_PATH_OVERLAP, prev_size);
+            int path_overlap = std::min(PREVIOUS_PATH_OVERLAP, prev_size); 
 
             std::cout << "v:" << car_speed << " x:" << car_x << " y:" << car_y << " yaw:" << car_yaw  << " s:" << car_s << " d:" << car_d << " prev size:" << prev_size << std::endl;
 
+
+            print_vector(previous_path_s, "previous_path_s-", 5);
+            print_vector(previous_path_x, "previous_path_x-", 5);
+            print_vector(previous_path_y, "previous_path_y-", 5);
+
+            print_vector(previous_path_s, "-previous_path_s", -5);
+            print_vector(previous_path_x, "-previous_path_x", -5);
+            print_vector(previous_path_y, "-previous_path_y", -5);
+
+           
+            if (prev_size == 0) {
+              end_path_s = car_s;
+            }
+
+            bool too_close = false;
+
+            for (int i=0; i < sensor_fusion.size(); i++) {
+              float d = sensor_fusion[i][6];
+
+              if (d < (2+4*lane+2) && d > (2+4*lane-2)) {
+                double vx = sensor_fusion[i][3];
+                double vy = sensor_fusion[i][4];
+                double check_speed = sqrt(vx*vx + vy*vy);
+                double check_car_s = sensor_fusion[i][5];
+
+                check_car_s += (double)prev_size*0.02*check_speed;
+
+                if ((check_car_s > end_path_s) && ((check_car_s-end_path_s)<30)) {
+                  too_close = true;
+                }
+              }
+            }
+
+            if (too_close) {
+              ref_vel -= 0.224;
+            } else if (ref_vel < 49.5) {
+              ref_vel += 0.224;
+            }
+
+
+
             vector<double> s_i(3), d_i(3);
+            vector<double> s_i_(3), d_i_(3);
+
             vector<double> s_f(3), d_f(3);
 
             vector<double> x_i(3), y_i(3);
+            vector<double> x_i_(3), y_i_(3);
 
             double yaw_i;
 
-            if (path_overlap < 4) {
-
-              vector<double> x_i_(3), y_i_(3);
-
+            if (path_overlap < 3) {
               yaw_i = deg2rad(car_yaw);
 
               x_i[0] = car_x;
@@ -506,10 +560,264 @@ int main() {
               y_i[2] = 0;
 
               x_i_[0] = car_x - x_i[1]*DT_MOTION;
+              x_i_[0] = car_x - cos(yaw_i);
               x_i_[1] = x_i[1];
               x_i_[2] = 0;
 
               y_i_[0] = car_y - y_i[1]*DT_MOTION;
+              y_i_[0] = car_y - sin(yaw_i);
+              y_i_[1] = y_i[1];
+              y_i_[2] = 0;
+
+              s_i[0] = car_s;
+              s_i[1] = car_speed;
+              s_i[2] = 0;
+
+              d_i[0] = car_d;
+              d_i[1] = 0;
+              d_i[2] = 0;
+
+              s_i_[0] = car_s - 1;
+              d_i_[0] = car_d;
+
+              track->setLocality(x_i[0], y_i[0], yaw_i);
+            } else {
+              vector<double> x_i__(3), y_i__(3);
+              vector<double> s_i__(3), d_i__(3);
+
+              x_i[0] = previous_path_x[path_overlap-1];
+              y_i[0] = previous_path_y[path_overlap-1];
+
+              x_i_[0] = previous_path_x[path_overlap-2];
+              y_i_[0] = previous_path_y[path_overlap-2];
+
+              x_i__[0] = previous_path_x[path_overlap-3];
+              y_i__[0] = previous_path_y[path_overlap-3];
+
+
+              x_i[1] = (x_i[0] - x_i_[0]) / DT_MOTION;
+              y_i[1] = (y_i[0] - y_i_[0]) / DT_MOTION;
+
+              x_i_[1] = (x_i_[0] - x_i__[0]) / DT_MOTION;
+              y_i_[1] = (y_i_[0] - y_i__[0]) / DT_MOTION;
+
+              x_i[2] = (x_i[1] - x_i_[1]) / DT_MOTION;
+              y_i[2] = (y_i[1] - y_i_[1]) / DT_MOTION;
+
+              yaw_i = atan2(y_i[0] - y_i_[0], x_i[0] - x_i_[0]);  
+
+              track->setLocality(x_i[0], y_i[0], yaw_i);
+
+              s_i[0] = previous_path_s[path_overlap-1];
+              d_i[0] = previous_path_d[path_overlap-1]; 
+
+              s_i_[0] = previous_path_s[path_overlap-2];
+              d_i_[0] = previous_path_d[path_overlap-2]; 
+
+              s_i__[0] = previous_path_s[path_overlap-3];
+              d_i__[0] = previous_path_d[path_overlap-3]; 
+
+
+              s_i[1] = (s_i[0] - s_i_[0]) / DT_MOTION;
+              d_i[1] = (d_i[0] - d_i_[0]) / DT_MOTION;
+
+              s_i_[1] = (s_i_[0] - s_i__[0]) / DT_MOTION;
+              d_i_[1] = (d_i_[0] - d_i__[0]) / DT_MOTION;
+
+              s_i[2] = (s_i[1] - s_i_[1]) / DT_MOTION;
+              d_i[2] = (d_i[1] - d_i_[1]) / DT_MOTION;
+
+
+#if 0
+              vector<double> frenet_i = track->getFrenet(x_i[0], y_i[0], yaw_i);
+              //vector<double> frenet_i = getFrenet(x_i[0], y_i[0], yaw_i, map_waypoints_x, map_waypoints_y);
+
+              s_i[0] = frenet_i[0];
+              d_i[0] = frenet_i[1];
+
+              vector<double> dxdy_i = track->getDxDy(s_i[0]);
+              vector<double> sxsy_i = track->getSxSy(s_i[0]);
+
+              s_i[1] = x_i[1]*sxsy_i[0] + y_i[1]*sxsy_i[1];
+              d_i[1] = x_i[1]*dxdy_i[0] + y_i[1]*dxdy_i[1];
+
+              s_i[2] = x_i[2]*sxsy_i[0] + y_i[2]*sxsy_i[1];
+              d_i[2] = x_i[2]*dxdy_i[0] + y_i[2]*dxdy_i[1];    
+
+              double yaw_i_ = atan2(y_i_[0] - y_i__[0], x_i_[0] - x_i__[0]);   
+
+              vector<double> frenet_i_ = track->getFrenet(x_i_[0], y_i_[0], yaw_i_); 
+              //vector<double> frenet_i_ = getFrenet(x_i_[0], y_i_[0], yaw_i_, map_waypoints_x, map_waypoints_y);     
+
+              s_i_[0] = frenet_i_[0];
+              d_i_[0] = frenet_i_[1];
+#endif
+            }
+
+            vector<double> ptsx;
+            vector<double> ptsy;
+            vector<double> ptss;
+        
+            ptss.push_back(s_i_[0]);
+            ptss.push_back(s_i[0]);
+
+            ptsx.push_back(x_i_[0]);
+            ptsx.push_back(x_i[0]);
+
+            ptsy.push_back(y_i_[0]);
+            ptsy.push_back(y_i[0]);  
+
+            for (int i = 30; i <= 90; i += 30) {
+              //vector<double> next_wp = getXY(car_s+i, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+
+              vector<double> next_wp = track->getXY(s_i[0]+i, (2+4*lane));
+
+              ptss.push_back(s_i[0]+i);
+              ptsx.push_back(next_wp[0]);
+              ptsy.push_back(next_wp[1]);
+
+            }
+
+            print_vector(ptss, "ptss");
+            print_vector(ptsx, "ptsx");
+            print_vector(ptsy, "ptsy");
+
+
+            double ref_s = s_i[0];
+            double ref_x = x_i[0];
+            double ref_y = y_i[0];
+            double ref_yaw = yaw_i;
+
+
+            for (int i=0; i < ptsx.size(); i++) {
+              double shift_x = ptsx[i] - ref_x;
+              double shift_y = ptsy[i] - ref_y;
+
+              ptss[i] = ptss[i] - ref_s;
+              ptsx[i] = shift_x*cos(ref_yaw) + shift_y*sin(ref_yaw);
+              ptsy[i] = -shift_x*sin(ref_yaw) + shift_y*cos(ref_yaw);
+            }
+
+
+            print_vector(ptss, "car ptss");
+            print_vector(ptsx, "car ptsx");
+            print_vector(ptsy, "car ptsy");
+
+            tk::spline s;
+            s.set_points(ptsx, ptsy);
+
+            tk::spline splinex;
+            //s.set_points(ptss, ptsx);
+
+            tk::spline spliney;
+            //s.set_points(ptss, ptsy);
+
+            vector<double> next_x_vals;
+            vector<double> next_y_vals;
+            next_s_vals.clear();
+
+            for(int i = 0; i < path_overlap; i++)
+            {
+              next_x_vals.push_back(previous_path_x[i]);
+              next_y_vals.push_back(previous_path_y[i]);
+              next_s_vals.push_back(previous_path_s[i]);
+              next_d_vals.push_back(previous_path_d[i]);
+
+              //double next_yaw = (i>0) ? atan2(next_y_vals[i] - next_y_vals[i-1], next_x_vals[i] - next_x_vals[i-1]) : yaw_i; 
+
+              //vector<double> next_frenet = track->getFrenet(next_x_vals[i], next_y_vals[i], next_yaw); 
+              //next_s_vals.push_back(next_frenet[0]);
+            }
+
+            double target_x = 30.0;
+            double target_y = s(target_x);
+            double target_dist = sqrt(target_x*target_x + target_y*target_y);
+
+            double N = (target_dist/(0.02*ref_vel/2.24));
+
+
+            for(int i = 0; i < N_POINTS_MOTION-path_overlap; i++) {
+
+              //double x_point = (i>0) ? next_x_vals[next_x_vals.size()-1] + target_x/N : target_x/N;//x_add_on + target_x/N;
+              double x_point = (i+1)*(target_x/N);
+              double y_point = s(x_point);
+
+              next_x_vals.push_back(x_point);
+              next_y_vals.push_back(y_point);
+            }
+
+            double target_s = 30.0;
+
+
+
+            for(int i = path_overlap; i < N_POINTS_MOTION; i++) {
+
+              double x_point_map = ref_x + next_x_vals[i]*cos(ref_yaw) - next_y_vals[i]*sin(ref_yaw);
+              double y_point_map = ref_y + next_x_vals[i]*sin(ref_yaw) + next_y_vals[i]*cos(ref_yaw);
+
+              next_x_vals[i] = x_point_map;
+              next_y_vals[i] = y_point_map;
+
+              double next_yaw = (i>0) ? atan2(next_y_vals[i] - next_y_vals[i-1], next_x_vals[i] - next_x_vals[i-1]) : yaw_i; 
+
+              vector<double> next_frenet = track->getFrenet(next_x_vals[i], next_y_vals[i], next_yaw); 
+              next_s_vals.push_back(next_frenet[0]);
+              next_d_vals.push_back(2+4*lane);
+            }
+
+            print_vector(next_s_vals, "next_s_vals-", 5);
+            print_vector(next_x_vals, "next_x_vals-", 5);
+            print_vector(next_y_vals, "next_y_vals-", 5);
+
+            print_vector(next_s_vals, "-next_s_vals", -5);
+            print_vector(next_x_vals, "-next_x_vals", -5);
+            print_vector(next_y_vals, "-next_y_vals", -5);
+#if 0
+            vector<double> s_i(3), d_i(3);
+            vector<double> s_f(3), d_f(3);
+
+            vector<double> x_i(3), y_i(3);
+            vector<double> x_i_(3), y_i_(3);
+
+            double yaw_i;
+
+
+            vector<double> ptsx;
+            vector<double> ptsy;
+
+
+            double ref_x = car_x;
+            double ref_y = car_y;
+            double ref_yaw = deg2rad(car_yaw);
+
+            if (path_overlap < 2) {
+
+              yaw_i = deg2rad(car_yaw);
+
+              double prev_car_x = car_x - cos(yaw_i);
+              double prev_car_y = car_y - sin(yaw_i);
+
+              ptsx.push_back(prev_car_x);
+              ptsx.push_back(car_x);
+
+              ptsy.push_back(prev_car_y);
+              ptsy.push_back(car_y);
+
+              x_i[0] = car_x;
+              x_i[1] = car_speed * cos(yaw_i);
+              x_i[2] = 0;
+
+              y_i[0] = car_y;
+              y_i[1] = car_speed * sin(yaw_i);
+              y_i[2] = 0;
+
+              x_i_[0] = car_x - x_i[1]*DT_MOTION;
+              x_i_[0] = car_x - cos(yaw_i);
+              x_i_[1] = x_i[1];
+              x_i_[2] = 0;
+
+              y_i_[0] = car_y - y_i[1]*DT_MOTION;
+              y_i_[0] = car_y - cos(yaw_i);
               y_i_[1] = y_i[1];
               y_i_[2] = 0;
 
@@ -521,8 +829,20 @@ int main() {
               d_i[1] = 0;
               d_i[2] = 0;
             } else {
+              ref_x = previous_path_x[path_overlap-1];
+              ref_y = previous_path_y[path_overlap-1];
 
-              vector<double> x_i_(3), y_i_(3);
+              double ref_x_prev = previous_path_x[path_overlap-2];
+              double ref_y_prev = previous_path_y[path_overlap-2];
+              ref_yaw = atan2(ref_y - ref_y_prev, ref_x - ref_x_prev);
+
+              ptsx.push_back(ref_x_prev);
+              ptsx.push_back(ref_x);
+
+              ptsy.push_back(ref_y_prev);
+              ptsy.push_back(ref_y); 
+
+
               vector<double> x_i__(3), y_i__(3);
 
               x_i[0] = previous_path_x[path_overlap-1];
@@ -561,6 +881,73 @@ int main() {
               s_i[2] = x_i[2]*sxsy_i[0] + y_i[2]*sxsy_i[1];
               d_i[2] = x_i[2]*dxdy_i[0] + y_i[2]*dxdy_i[1];          
             }
+
+
+            vector<double> next_wp0 = getXY(car_s+30, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+            vector<double> next_wp1 = getXY(car_s+60, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+            vector<double> next_wp2 = getXY(car_s+90, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+
+            ptsx.push_back(next_wp0[0]);
+            ptsx.push_back(next_wp1[0]);
+            ptsx.push_back(next_wp2[0]);
+
+            ptsy.push_back(next_wp0[1]);
+            ptsy.push_back(next_wp1[1]);
+            ptsy.push_back(next_wp2[1]);
+
+            print_vector(ptsx, "ptsx");
+            print_vector(ptsy, "ptsy");
+
+
+            for (int i=0; i < ptsx.size(); i++) {
+              double shift_x = ptsx[i] - ref_x;
+              double shift_y = ptsy[i] - ref_y;
+
+              ptsx[i] = shift_x*cos(ref_yaw) + shift_y*sin(ref_yaw);
+              ptsy[i] = -shift_x*sin(ref_yaw) + shift_y*cos(ref_yaw);
+            }
+
+            tk::spline s;
+
+            print_vector(ptsx, "car ptsx");
+            print_vector(ptsy, "car ptsy");
+
+            s.set_points(ptsx, ptsy);
+
+            vector<double> next_x_vals;
+            vector<double> next_y_vals;
+
+            for(int i = 0; i < path_overlap; i++)
+            {
+              next_x_vals.push_back(previous_path_x[i]);
+              next_y_vals.push_back(previous_path_y[i]);
+            }
+
+            double target_x = 30.0;
+            double target_y = s(target_x);
+            double target_dist = sqrt(target_x*target_x + target_y*target_y);
+
+            double x_add_on = 0;
+
+
+            for(int i = 0; i < 50-path_overlap; i++) {
+              double N = (target_dist/(0.02*ref_vel/2.24));
+              double x_point = x_add_on + target_x/N;
+              double y_point = s(x_point);
+
+              x_add_on = x_point;
+
+              double x_point_map = ref_x + x_point*cos(ref_yaw) - y_point*sin(ref_yaw);
+              double y_point_map = ref_y + x_point*sin(ref_yaw) + y_point*cos(ref_yaw);
+
+              next_x_vals.push_back(x_point_map);
+              next_y_vals.push_back(y_point_map);
+            }
+
+            print_vector(next_x_vals, "next_x_vals", -5);
+            print_vector(next_y_vals, "next_y_vals", -5);
+            
+
 
 
             double dist_inc = 0.4;
@@ -613,40 +1000,15 @@ int main() {
               next_y_vals.push_back(xy[1]);
             }
 
-            count_i++;
-
-            //if (count_i >= 2)
-            //exit(0);
-
             //print_vector(next_x_vals, "next_x_vals", -5);
             //print_vector(next_y_vals, "next_y_vals", -5);
-            vector<double> i_vals;
-            vector<double> x_vals;
-            vector<double> y_vals;
+            
+#endif
 
-            for (int i = 0; i < N_POINTS_MOTION; i += 5) {
-              i_vals.push_back(i);
-              x_vals.push_back(next_x_vals[i]);
-              y_vals.push_back(next_y_vals[i]);
-            }
+            count_i++;
 
-            i_vals.push_back(next_x_vals.size()-1);
-            x_vals.push_back(next_x_vals[next_x_vals.size()-1]);
-            y_vals.push_back(next_y_vals[next_y_vals.size()-1]);
-
-            tk::spline spline_x, spline_y;
-
-            spline_x.set_points(i_vals, x_vals);
-            spline_y.set_points(i_vals, y_vals);
-
-            next_x_vals.clear();
-            next_y_vals.clear();
-
-            for (int i = 0; i < N_POINTS_MOTION; ++i) {
-              next_x_vals.push_back(spline_x(i));
-              next_y_vals.push_back(spline_y(i));
-            }
-
+            //if (count_i >= 10)
+            //exit(0);
 
             std::cout << std::endl;
 

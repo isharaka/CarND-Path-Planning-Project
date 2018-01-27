@@ -62,7 +62,8 @@ double Map::distance(double x1, double y1, double x2, double y2)
 void Map::setLocality(int next_wp)
 {
     enum {
-        WAYPOINTS_SPAN = 4,
+        WAYPOINTS_SPAN_FORWARD = 5,
+        WAYPOINTS_SPAN_BACKWARD = 2,
     };
 
     const int num_waypoints = map_waypoints_s.size();
@@ -73,10 +74,10 @@ void Map::setLocality(int next_wp)
 
     double _s = 0.0;
 
-    first_local_wp = (next_wp + num_waypoints - WAYPOINTS_SPAN) % num_waypoints;
-    last_local_wp = (next_wp + WAYPOINTS_SPAN) % num_waypoints;
+    first_local_wp = (next_wp + num_waypoints - WAYPOINTS_SPAN_BACKWARD) % num_waypoints;
+    last_local_wp = (next_wp + WAYPOINTS_SPAN_FORWARD) % num_waypoints;
 
-    for (int i = -WAYPOINTS_SPAN; i <= WAYPOINTS_SPAN; ++i) {
+    for (int i = -WAYPOINTS_SPAN_BACKWARD; i <= WAYPOINTS_SPAN_FORWARD; ++i) {
         int wp = i + next_wp + num_waypoints;
 
         while(wp >= num_waypoints)
@@ -133,26 +134,39 @@ void Map::setLocality(double s)
     setLocality(next_wp);
 }
 
-vector<double> Map::getFrenet(double x, double y, double theta)
+vector<double> Map::getFrenet(double x, double y, double theta, bool fine, bool localize)
 {
+    if (fine) {
+        if (localize)
+            setLocality(x, y, theta);
 
-  vector<double> sd = getFrenet(x, y, theta, local_waypoints_x, local_waypoints_y);
+        vector<double> sd = getFrenet(x, y, theta, local_waypoints_x, local_waypoints_y);
 
-  sd[0] += map_waypoints_s[first_local_wp];
+        sd[0] += map_waypoints_s[first_local_wp];
 
-  while (sd[0] > max_s)
-    sd[0] -= max_s;
+        while (sd[0] > max_s)
+            sd[0] -= max_s;
 
-  return sd;
+        return sd;
+    } else {
+        return getFrenet(x, y, theta, map_waypoints_x, map_waypoints_y);
+    }
 }
 
 
-vector<double> Map::getXY(double s, double d)
+vector<double> Map::getXY(double s, double d, bool fine, bool localize)
 {
-  if (s >= local_s_transition && s <= map_waypoints_s[last_local_wp])
-    s += local_s_correction;
+    if (fine) {
+        if (localize)
+            setLocality(s);
 
-  return {_splines->x(s) + d*_splines->dx(s), _splines->y(s) + d*_splines->dy(s)};
+        if (s >= local_s_transition && s <= map_waypoints_s[last_local_wp])
+            s += local_s_correction;
+
+        return {_splines->x(s) + d*_splines->dx(s), _splines->y(s) + d*_splines->dy(s)};
+    } else {
+        return getXY(s, d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    }
 }
 
 

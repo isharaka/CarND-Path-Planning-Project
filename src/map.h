@@ -26,8 +26,8 @@ public:
     void setLocality(double s);
     void setLocality(int next_wp);
 
-    vector<double> getFrenet(double x, double y, double theta);
-    vector<double> getXY(double s, double d);
+    vector<double> getFrenet(double x, double y, double theta, bool fine = false, bool localize = false);
+    vector<double> getXY(double s, double d, bool fine = false, bool localize = false);
 
     vector<double> getDxDy(double s);
     vector<double> getSxSy(double s);
