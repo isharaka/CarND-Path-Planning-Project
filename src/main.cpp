@@ -45,7 +45,7 @@ void print_vector(vector<double>& vec, const string& name, int n=0)
   int start = 0;
   int end = vec.size();
 
-  std::cout << name << ' ';
+  std::cout << name << " (" << vec.size() << ") " ;
 
   if (n > 0) {
     end = std::min(n,end);
@@ -439,7 +439,7 @@ int main() {
   aa.push_back(0);
   aa.push_back(1);
 
-  cout << "aa[0] " << aa[0] << " aa[1] " << aa[1];
+  cout << "aa[0] " << aa[0] << " aa[1] " << aa[1] << endl;
 
   //exit(0);
 
@@ -483,6 +483,11 @@ int main() {
           	// Sensor Fusion Data, a list of all other cars on the same side of the road.
           	vector<vector<double>> sensor_fusion = j[1]["sensor_fusion"];
 
+            int prev_size = previous_path_x.size();
+            int path_overlap = std::min(PREVIOUS_PATH_OVERLAP, prev_size); 
+
+            std::cout << "v:" << car_speed << " x:" << car_x << " y:" << car_y << " yaw:" << car_yaw  << " s:" << car_s << " d:" << car_d << " prev size:" << prev_size << std::endl;
+
             vector<double> previous_path_s;
             vector<double> previous_path_d;
 
@@ -492,10 +497,6 @@ int main() {
             }
 
 
-            int prev_size = previous_path_x.size();
-            int path_overlap = std::min(PREVIOUS_PATH_OVERLAP, prev_size); 
-
-            std::cout << "v:" << car_speed << " x:" << car_x << " y:" << car_y << " yaw:" << car_yaw  << " s:" << car_s << " d:" << car_d << " prev size:" << prev_size << std::endl;
 
 
             print_vector(previous_path_s, "previous_path_s-", 5);
@@ -627,31 +628,6 @@ int main() {
               s_i[2] = (s_i[1] - s_i_[1]) / DT_MOTION;
               d_i[2] = (d_i[1] - d_i_[1]) / DT_MOTION;
 
-
-#if 0
-              vector<double> frenet_i = track->getFrenet(x_i[0], y_i[0], yaw_i);
-              //vector<double> frenet_i = getFrenet(x_i[0], y_i[0], yaw_i, map_waypoints_x, map_waypoints_y);
-
-              s_i[0] = frenet_i[0];
-              d_i[0] = frenet_i[1];
-
-              vector<double> dxdy_i = track->getDxDy(s_i[0]);
-              vector<double> sxsy_i = track->getSxSy(s_i[0]);
-
-              s_i[1] = x_i[1]*sxsy_i[0] + y_i[1]*sxsy_i[1];
-              d_i[1] = x_i[1]*dxdy_i[0] + y_i[1]*dxdy_i[1];
-
-              s_i[2] = x_i[2]*sxsy_i[0] + y_i[2]*sxsy_i[1];
-              d_i[2] = x_i[2]*dxdy_i[0] + y_i[2]*dxdy_i[1];    
-
-              double yaw_i_ = atan2(y_i_[0] - y_i__[0], x_i_[0] - x_i__[0]);   
-
-              vector<double> frenet_i_ = track->getFrenet(x_i_[0], y_i_[0], yaw_i_); 
-              //vector<double> frenet_i_ = getFrenet(x_i_[0], y_i_[0], yaw_i_, map_waypoints_x, map_waypoints_y);     
-
-              s_i_[0] = frenet_i_[0];
-              d_i_[0] = frenet_i_[1];
-#endif
             }
 
             vector<double> ptsx;
@@ -702,19 +678,22 @@ int main() {
             print_vector(ptss, "car ptss");
             print_vector(ptsx, "car ptsx");
             print_vector(ptsy, "car ptsy");
-
+#if 0
             tk::spline s;
             s.set_points(ptsx, ptsy);
-
+#else
             tk::spline splinex;
-            //s.set_points(ptss, ptsx);
+            splinex.set_points(ptss, ptsx);
 
             tk::spline spliney;
-            //s.set_points(ptss, ptsy);
+            spliney.set_points(ptss, ptsy);
+#endif
 
             vector<double> next_x_vals;
             vector<double> next_y_vals;
             next_s_vals.clear();
+            next_d_vals.clear();
+
 
             for(int i = 0; i < path_overlap; i++)
             {
@@ -722,13 +701,8 @@ int main() {
               next_y_vals.push_back(previous_path_y[i]);
               next_s_vals.push_back(previous_path_s[i]);
               next_d_vals.push_back(previous_path_d[i]);
-
-              //double next_yaw = (i>0) ? atan2(next_y_vals[i] - next_y_vals[i-1], next_x_vals[i] - next_x_vals[i-1]) : yaw_i; 
-
-              //vector<double> next_frenet = track->getFrenet(next_x_vals[i], next_y_vals[i], next_yaw); 
-              //next_s_vals.push_back(next_frenet[0]);
             }
-
+#if 0
             double target_x = 30.0;
             double target_y = s(target_x);
             double target_dist = sqrt(target_x*target_x + target_y*target_y);
@@ -745,10 +719,22 @@ int main() {
               next_x_vals.push_back(x_point);
               next_y_vals.push_back(y_point);
             }
-
+#else
             double target_s = 30.0;
+            double N = (target_s/(0.02*ref_vel/2.24));
 
 
+            for(int i = 0; i < N_POINTS_MOTION-path_overlap; i++) {
+              double s_point = (i+1)*(target_s/N);
+              double x_point = splinex(s_point);
+              double y_point = spliney(s_point);
+
+              next_s_vals.push_back(s_point);
+              next_d_vals.push_back(2+4*lane);
+              next_x_vals.push_back(x_point);
+              next_y_vals.push_back(y_point);
+            }
+#endif
 
             for(int i = path_overlap; i < N_POINTS_MOTION; i++) {
 
@@ -758,11 +744,16 @@ int main() {
               next_x_vals[i] = x_point_map;
               next_y_vals[i] = y_point_map;
 
+#if 0
               double next_yaw = (i>0) ? atan2(next_y_vals[i] - next_y_vals[i-1], next_x_vals[i] - next_x_vals[i-1]) : yaw_i; 
 
               vector<double> next_frenet = track->getFrenet(next_x_vals[i], next_y_vals[i], next_yaw); 
               next_s_vals.push_back(next_frenet[0]);
               next_d_vals.push_back(2+4*lane);
+#else
+
+              next_s_vals[i] += ref_s;
+#endif
             }
 
             print_vector(next_s_vals, "next_s_vals-", 5);
