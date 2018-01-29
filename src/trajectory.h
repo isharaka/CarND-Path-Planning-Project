@@ -13,6 +13,8 @@ public:
     double s(double t);
     double d(double t);
 
+    double timeToDestination(double s);
+
 private:
     vector<double> _s_coeff;
     vector<double> _d_coeff;

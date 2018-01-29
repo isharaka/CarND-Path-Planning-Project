@@ -72,6 +72,32 @@ double Trajectory::polyeval(vector<double>& c, double x)
         result += c[i]*pow(x,i);
 }
 
+double Trajectory::timeToDestination(double s)
+{
+    if (_s_coeff.size() > 2) {
+        double a = _s_coeff[2];
+        double b = _s_coeff[1];
+        double c = _s_coeff[0] - s;
+
+        double d = b*b - 4*a*c;
+
+        if (d > 0 && a != 0) {
+            d = sqrt(d);
+            return std::max(d-b,d+b) / (2*a);
+        } else {
+            return -1;
+        }
+
+    } else if (_s_coeff.size() > 1) {
+        double v = _s_coeff[1];
+        if (v != 0)
+            return (s - _s_coeff[0])/v;
+
+    } else {
+        return -1;
+    }
+}
+
 vector<double> Trajectory::JMT(vector<double> start, vector<double> end, double T)
 {
     /*

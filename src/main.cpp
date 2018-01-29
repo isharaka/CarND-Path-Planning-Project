@@ -499,13 +499,13 @@ int main() {
 
 
 
-            print_vector(previous_path_s, "previous_path_s-", 5);
-            print_vector(previous_path_x, "previous_path_x-", 5);
-            print_vector(previous_path_y, "previous_path_y-", 5);
+            //print_vector(previous_path_s, "previous_path_s-", 5);
+            //print_vector(previous_path_x, "previous_path_x-", 5);
+            //print_vector(previous_path_y, "previous_path_y-", 5);
 
-            print_vector(previous_path_s, "-previous_path_s", -5);
-            print_vector(previous_path_x, "-previous_path_x", -5);
-            print_vector(previous_path_y, "-previous_path_y", -5);
+            //print_vector(previous_path_s, "-previous_path_s", -5);
+            //print_vector(previous_path_x, "-previous_path_x", -5);
+            //print_vector(previous_path_y, "-previous_path_y", -5);
 
            
             if (prev_size == 0) {
@@ -532,9 +532,9 @@ int main() {
             }
 
             if (too_close) {
-              ref_vel -= 0.224;
-            } else if (ref_vel < 49.5) {
-              ref_vel += 0.224;
+              ref_vel -= 0.1;
+            } else if (ref_vel < 22) {
+              ref_vel += 0.1;
             }
 
 
@@ -630,6 +630,18 @@ int main() {
 
             }
 
+            print_vector(s_i, "s_i");
+            print_vector(d_i, "d_i");
+
+            print_vector(x_i, "x_i");
+            print_vector(y_i, "y_i");
+
+
+            s_f[0] = s_i[0] + ref_vel * TRAJECTORY_HORIZON;
+            d_f[0] = 2 + 4*lane;
+
+            trajectory->generateCVTrajectory(s_i, d_i, s_f, d_f, TRAJECTORY_HORIZON);
+
             vector<double> ptsx;
             vector<double> ptsy;
             vector<double> ptss;
@@ -643,20 +655,25 @@ int main() {
             ptsy.push_back(y_i_[0]);
             ptsy.push_back(y_i[0]);  
 
+
             for (int i = 30; i <= 90; i += 30) {
               //vector<double> next_wp = getXY(car_s+i, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+              double t = trajectory->timeToDestination(s_i[0]+i);
 
-              vector<double> next_wp = track->getXY(s_i[0]+i, (2+4*lane));
+              vector<double> next_wp = track->getXY(trajectory->s(t), trajectory->d(t));
+              cout <<"t:" << t << " ";
+              print_vector(next_wp, "next_wp");
+
+              next_wp = track->getXY(s_i[0]+i, (2+4*lane));
 
               ptss.push_back(s_i[0]+i);
               ptsx.push_back(next_wp[0]);
               ptsy.push_back(next_wp[1]);
-
             }
 
-            print_vector(ptss, "ptss");
-            print_vector(ptsx, "ptsx");
-            print_vector(ptsy, "ptsy");
+            //print_vector(ptss, "ptss");
+            //print_vector(ptsx, "ptsx");
+            //print_vector(ptsy, "ptsy");
 
 
             double ref_s = s_i[0];
@@ -675,9 +692,9 @@ int main() {
             }
 
 
-            print_vector(ptss, "car ptss");
-            print_vector(ptsx, "car ptsx");
-            print_vector(ptsy, "car ptsy");
+            //print_vector(ptss, "car ptss");
+            //print_vector(ptsx, "car ptsx");
+            //print_vector(ptsy, "car ptsy");
 
             tk::spline splinex;
             splinex.set_points(ptss, ptsx);
@@ -699,12 +716,11 @@ int main() {
               next_d_vals.push_back(previous_path_d[i]);
             }
 
-            double target_s = 30.0;
-            double N = (target_s/(0.02*ref_vel/2.24));
-
 
             for(int i = 0; i < N_POINTS_MOTION-path_overlap; i++) {
-              double s_point = (i+1)*(target_s/N);
+              double t = (i+1) * DT_MOTION;
+
+              double s_point = t * ref_vel;
               double x_point = splinex(s_point);
               double y_point = spliney(s_point);
 
@@ -726,13 +742,13 @@ int main() {
 
             }
 
-            print_vector(next_s_vals, "next_s_vals-", 5);
-            print_vector(next_x_vals, "next_x_vals-", 5);
-            print_vector(next_y_vals, "next_y_vals-", 5);
+            //print_vector(next_s_vals, "next_s_vals-", 5);
+            //print_vector(next_x_vals, "next_x_vals-", 5);
+            //print_vector(next_y_vals, "next_y_vals-", 5);
 
-            print_vector(next_s_vals, "-next_s_vals", -5);
-            print_vector(next_x_vals, "-next_x_vals", -5);
-            print_vector(next_y_vals, "-next_y_vals", -5);
+            //print_vector(next_s_vals, "-next_s_vals", -5);
+            //print_vector(next_x_vals, "-next_x_vals", -5);
+            //print_vector(next_y_vals, "-next_y_vals", -5);
 #if 0
             vector<double> s_i(3), d_i(3);
             vector<double> s_f(3), d_f(3);
