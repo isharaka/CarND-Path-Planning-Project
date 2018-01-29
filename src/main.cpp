@@ -678,16 +678,12 @@ int main() {
             print_vector(ptss, "car ptss");
             print_vector(ptsx, "car ptsx");
             print_vector(ptsy, "car ptsy");
-#if 0
-            tk::spline s;
-            s.set_points(ptsx, ptsy);
-#else
+
             tk::spline splinex;
             splinex.set_points(ptss, ptsx);
 
             tk::spline spliney;
             spliney.set_points(ptss, ptsy);
-#endif
 
             vector<double> next_x_vals;
             vector<double> next_y_vals;
@@ -702,24 +698,7 @@ int main() {
               next_s_vals.push_back(previous_path_s[i]);
               next_d_vals.push_back(previous_path_d[i]);
             }
-#if 0
-            double target_x = 30.0;
-            double target_y = s(target_x);
-            double target_dist = sqrt(target_x*target_x + target_y*target_y);
 
-            double N = (target_dist/(0.02*ref_vel/2.24));
-
-
-            for(int i = 0; i < N_POINTS_MOTION-path_overlap; i++) {
-
-              //double x_point = (i>0) ? next_x_vals[next_x_vals.size()-1] + target_x/N : target_x/N;//x_add_on + target_x/N;
-              double x_point = (i+1)*(target_x/N);
-              double y_point = s(x_point);
-
-              next_x_vals.push_back(x_point);
-              next_y_vals.push_back(y_point);
-            }
-#else
             double target_s = 30.0;
             double N = (target_s/(0.02*ref_vel/2.24));
 
@@ -734,7 +713,7 @@ int main() {
               next_x_vals.push_back(x_point);
               next_y_vals.push_back(y_point);
             }
-#endif
+
 
             for(int i = path_overlap; i < N_POINTS_MOTION; i++) {
 
@@ -743,17 +722,8 @@ int main() {
 
               next_x_vals[i] = x_point_map;
               next_y_vals[i] = y_point_map;
-
-#if 0
-              double next_yaw = (i>0) ? atan2(next_y_vals[i] - next_y_vals[i-1], next_x_vals[i] - next_x_vals[i-1]) : yaw_i; 
-
-              vector<double> next_frenet = track->getFrenet(next_x_vals[i], next_y_vals[i], next_yaw); 
-              next_s_vals.push_back(next_frenet[0]);
-              next_d_vals.push_back(2+4*lane);
-#else
-
               next_s_vals[i] += ref_s;
-#endif
+
             }
 
             print_vector(next_s_vals, "next_s_vals-", 5);
