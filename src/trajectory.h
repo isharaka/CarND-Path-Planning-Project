@@ -1,3 +1,6 @@
+#ifndef _TRAJECTORY_
+#define _TRAJECTORY_
+
 #include <vector>
 
 using namespace std;
@@ -23,3 +26,5 @@ private:
     double polyeval(vector<double>& c, double x);
 
 };
+
+#endif

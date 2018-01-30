@@ -12,6 +12,7 @@
 
 #include "map.h"
 #include "trajectory.h"
+#include "motion.h"
 
 using namespace std;
 
@@ -343,6 +344,7 @@ vector<double> _getXY(double s, double d, const vector<double> &maps_s, const ve
   double ref_vel = 0; // mph
   Map * track;
   Trajectory * trajectory;
+  Motion * motion;
 
   int count_i = 0;
 
@@ -389,6 +391,7 @@ int main() {
 
   track = new Map();
   trajectory = new Trajectory();
+  motion = new Motion();
 
   double sd[][2]={{0, 0},{120.7,10},{6875,-10},{6920,0}};
   //double sd[][2]={{384, 0},{390.7,0},{745,0},{760,0}};
@@ -495,6 +498,8 @@ int main() {
               previous_path_s.push_back(next_s_vals[i]);
               previous_path_d.push_back(next_d_vals[i]);
             }
+
+            motion->telemetry(car_x, car_y, car_s, car_d, car_yaw, car_speed, previous_path_x, previous_path_y, end_path_s, end_path_d);
 
 
 
@@ -636,6 +641,17 @@ int main() {
             print_vector(x_i, "x_i");
             print_vector(y_i, "y_i");
 
+            vector<double> tx_i = motion->getInitX();
+            vector<double> ty_i = motion->getInitY();
+            vector<double> ts_i = motion->getInitS();
+            vector<double> td_i = motion->getInitD();
+
+            print_vector(ts_i, "ts_i");
+            print_vector(td_i, "td_i");
+
+            print_vector(tx_i, "tx_i");
+            print_vector(ty_i, "ty_i");
+
 
             s_f[0] = s_i[0] + ref_vel * TRAJECTORY_HORIZON;
             d_f[0] = 2 + 4*lane;
@@ -661,19 +677,19 @@ int main() {
               double t = trajectory->timeToDestination(s_i[0]+i);
 
               vector<double> next_wp = track->getXY(trajectory->s(t), trajectory->d(t));
-              cout <<"t:" << t << " ";
-              print_vector(next_wp, "next_wp");
+              //cout <<"t:" << t << " ";
+              //print_vector(next_wp, "next_wp");
 
-              next_wp = track->getXY(s_i[0]+i, (2+4*lane));
+              //vector<double> next_wp = track->getXY(s_i[0]+i, (2+4*lane));
 
               ptss.push_back(s_i[0]+i);
               ptsx.push_back(next_wp[0]);
               ptsy.push_back(next_wp[1]);
             }
 
-            //print_vector(ptss, "ptss");
-            //print_vector(ptsx, "ptsx");
-            //print_vector(ptsy, "ptsy");
+            print_vector(ptss, "ptss");
+            print_vector(ptsx, "ptsx");
+            print_vector(ptsy, "ptsy");
 
 
             double ref_s = s_i[0];
@@ -692,16 +708,20 @@ int main() {
             }
 
 
-            //print_vector(ptss, "car ptss");
-            //print_vector(ptsx, "car ptsx");
-            //print_vector(ptsy, "car ptsy");
+            print_vector(ptss, "car ptss");
+            print_vector(ptsx, "car ptsx");
+            print_vector(ptsy, "car ptsy");
 
+#if 0
             tk::spline splinex;
             splinex.set_points(ptss, ptsx);
 
             tk::spline spliney;
             spliney.set_points(ptss, ptsy);
-
+#else
+            tk::spline s;
+            s.set_points(ptsx, ptsy);
+#endif
             vector<double> next_x_vals;
             vector<double> next_y_vals;
             next_s_vals.clear();
@@ -716,30 +736,59 @@ int main() {
               next_d_vals.push_back(previous_path_d[i]);
             }
 
-
+#if 0
             for(int i = 0; i < N_POINTS_MOTION-path_overlap; i++) {
               double t = (i+1) * DT_MOTION;
 
-              double s_point = t * ref_vel;
+              double s_point = trajectory->s(t) - ref_s;//t * ref_vel;
+              double d_point = trajectory->d(t);
               double x_point = splinex(s_point);
               double y_point = spliney(s_point);
 
               next_s_vals.push_back(s_point);
-              next_d_vals.push_back(2+4*lane);
+              next_d_vals.push_back(d_point);
               next_x_vals.push_back(x_point);
               next_y_vals.push_back(y_point);
             }
+#else
 
+
+            double target_x = 30.0;
+            double target_y = s(target_x);
+            double target_dist = sqrt(target_x*target_x + target_y*target_y);
+
+            double x_add_on = 0;
+            double N = (target_dist/(DT_MOTION*ref_vel));
+
+
+            for(int i = 0; i < N_POINTS_MOTION - path_overlap; i++) {
+              double x_point = x_add_on + target_x/N;
+              double y_point = s(x_point);
+
+              x_add_on = x_point;
+
+              next_x_vals.push_back(x_point);
+              next_y_vals.push_back(y_point);
+            }
+#endif
 
             for(int i = path_overlap; i < N_POINTS_MOTION; i++) {
 
               double x_point_map = ref_x + next_x_vals[i]*cos(ref_yaw) - next_y_vals[i]*sin(ref_yaw);
               double y_point_map = ref_y + next_x_vals[i]*sin(ref_yaw) + next_y_vals[i]*cos(ref_yaw);
 
+#if 0
+              next_s_vals[i] += ref_s;
+#else
+              double theta = (i > 0) ? atan2(y_point_map - next_y_vals[i-1], x_point_map - next_x_vals[i-1]) : yaw_i; 
+              vector<double> sd = track->getFrenet(x_point_map, y_point_map, theta);
+
+
               next_x_vals[i] = x_point_map;
               next_y_vals[i] = y_point_map;
-              next_s_vals[i] += ref_s;
-
+              next_s_vals.push_back(sd[0]);
+              next_d_vals.push_back(sd[1]);
+#endif
             }
 
             //print_vector(next_s_vals, "next_s_vals-", 5);
@@ -749,238 +798,7 @@ int main() {
             //print_vector(next_s_vals, "-next_s_vals", -5);
             //print_vector(next_x_vals, "-next_x_vals", -5);
             //print_vector(next_y_vals, "-next_y_vals", -5);
-#if 0
-            vector<double> s_i(3), d_i(3);
-            vector<double> s_f(3), d_f(3);
 
-            vector<double> x_i(3), y_i(3);
-            vector<double> x_i_(3), y_i_(3);
-
-            double yaw_i;
-
-
-            vector<double> ptsx;
-            vector<double> ptsy;
-
-
-            double ref_x = car_x;
-            double ref_y = car_y;
-            double ref_yaw = deg2rad(car_yaw);
-
-            if (path_overlap < 2) {
-
-              yaw_i = deg2rad(car_yaw);
-
-              double prev_car_x = car_x - cos(yaw_i);
-              double prev_car_y = car_y - sin(yaw_i);
-
-              ptsx.push_back(prev_car_x);
-              ptsx.push_back(car_x);
-
-              ptsy.push_back(prev_car_y);
-              ptsy.push_back(car_y);
-
-              x_i[0] = car_x;
-              x_i[1] = car_speed * cos(yaw_i);
-              x_i[2] = 0;
-
-              y_i[0] = car_y;
-              y_i[1] = car_speed * sin(yaw_i);
-              y_i[2] = 0;
-
-              x_i_[0] = car_x - x_i[1]*DT_MOTION;
-              x_i_[0] = car_x - cos(yaw_i);
-              x_i_[1] = x_i[1];
-              x_i_[2] = 0;
-
-              y_i_[0] = car_y - y_i[1]*DT_MOTION;
-              y_i_[0] = car_y - cos(yaw_i);
-              y_i_[1] = y_i[1];
-              y_i_[2] = 0;
-
-              s_i[0] = car_s;
-              s_i[1] = car_speed;
-              s_i[2] = 0;
-
-              d_i[0] = car_d;
-              d_i[1] = 0;
-              d_i[2] = 0;
-            } else {
-              ref_x = previous_path_x[path_overlap-1];
-              ref_y = previous_path_y[path_overlap-1];
-
-              double ref_x_prev = previous_path_x[path_overlap-2];
-              double ref_y_prev = previous_path_y[path_overlap-2];
-              ref_yaw = atan2(ref_y - ref_y_prev, ref_x - ref_x_prev);
-
-              ptsx.push_back(ref_x_prev);
-              ptsx.push_back(ref_x);
-
-              ptsy.push_back(ref_y_prev);
-              ptsy.push_back(ref_y); 
-
-
-              vector<double> x_i__(3), y_i__(3);
-
-              x_i[0] = previous_path_x[path_overlap-1];
-              y_i[0] = previous_path_y[path_overlap-1];
-
-              x_i_[0] = previous_path_x[path_overlap-2];
-              y_i_[0] = previous_path_y[path_overlap-2];
-
-              x_i__[0] = previous_path_x[path_overlap-3];
-              y_i__[0] = previous_path_y[path_overlap-3];
-
-
-              x_i[1] = (x_i[0] - x_i_[0]) / DT_MOTION;
-              y_i[1] = (y_i[0] - y_i_[0]) / DT_MOTION;
-
-              x_i_[1] = (x_i_[0] - x_i__[0]) / DT_MOTION;
-              y_i_[1] = (y_i_[0] - y_i__[0]) / DT_MOTION;
-
-              x_i[2] = (x_i[1] - x_i_[1]) / DT_MOTION;
-              y_i[2] = (y_i[1] - y_i_[1]) / DT_MOTION;
-
-              yaw_i = atan2(y_i[0] - y_i_[0], x_i[0] - x_i_[0]);
-
-              track->setLocality(x_i[0], y_i[0], yaw_i);
-              vector<double> frenet_i = track->getFrenet(x_i[0], y_i[0], yaw_i);
-
-              s_i[0] = frenet_i[0];
-              d_i[0] = frenet_i[1];
-
-              vector<double> dxdy_i = track->getDxDy(s_i[0]);
-              vector<double> sxsy_i = track->getSxSy(s_i[0]);
-
-              s_i[1] = x_i[1]*sxsy_i[0] + y_i[1]*sxsy_i[1];
-              d_i[1] = x_i[1]*dxdy_i[0] + y_i[1]*dxdy_i[1];
-
-              s_i[2] = x_i[2]*sxsy_i[0] + y_i[2]*sxsy_i[1];
-              d_i[2] = x_i[2]*dxdy_i[0] + y_i[2]*dxdy_i[1];          
-            }
-
-
-            vector<double> next_wp0 = getXY(car_s+30, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-            vector<double> next_wp1 = getXY(car_s+60, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-            vector<double> next_wp2 = getXY(car_s+90, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-
-            ptsx.push_back(next_wp0[0]);
-            ptsx.push_back(next_wp1[0]);
-            ptsx.push_back(next_wp2[0]);
-
-            ptsy.push_back(next_wp0[1]);
-            ptsy.push_back(next_wp1[1]);
-            ptsy.push_back(next_wp2[1]);
-
-            print_vector(ptsx, "ptsx");
-            print_vector(ptsy, "ptsy");
-
-
-            for (int i=0; i < ptsx.size(); i++) {
-              double shift_x = ptsx[i] - ref_x;
-              double shift_y = ptsy[i] - ref_y;
-
-              ptsx[i] = shift_x*cos(ref_yaw) + shift_y*sin(ref_yaw);
-              ptsy[i] = -shift_x*sin(ref_yaw) + shift_y*cos(ref_yaw);
-            }
-
-            tk::spline s;
-
-            print_vector(ptsx, "car ptsx");
-            print_vector(ptsy, "car ptsy");
-
-            s.set_points(ptsx, ptsy);
-
-            vector<double> next_x_vals;
-            vector<double> next_y_vals;
-
-            for(int i = 0; i < path_overlap; i++)
-            {
-              next_x_vals.push_back(previous_path_x[i]);
-              next_y_vals.push_back(previous_path_y[i]);
-            }
-
-            double target_x = 30.0;
-            double target_y = s(target_x);
-            double target_dist = sqrt(target_x*target_x + target_y*target_y);
-
-            double x_add_on = 0;
-
-
-            for(int i = 0; i < 50-path_overlap; i++) {
-              double N = (target_dist/(0.02*ref_vel/2.24));
-              double x_point = x_add_on + target_x/N;
-              double y_point = s(x_point);
-
-              x_add_on = x_point;
-
-              double x_point_map = ref_x + x_point*cos(ref_yaw) - y_point*sin(ref_yaw);
-              double y_point_map = ref_y + x_point*sin(ref_yaw) + y_point*cos(ref_yaw);
-
-              next_x_vals.push_back(x_point_map);
-              next_y_vals.push_back(y_point_map);
-            }
-
-            print_vector(next_x_vals, "next_x_vals", -5);
-            print_vector(next_y_vals, "next_y_vals", -5);
-            
-
-
-
-            double dist_inc = 0.4;
-
-            s_f[0] = s_i[0] + 20 * TRAJECTORY_HORIZON; 
-            s_f[1] = 20;
-            s_f[2] = 0;
-
-            d_f[0] = 6;
-            d_f[1] = 0;
-            d_f[2] = 0;
-
-            trajectory->generateCVTrajectory(s_i, d_i, s_f, d_f, TRAJECTORY_HORIZON);
-
-
-          	vector<double> next_x_vals;
-          	vector<double> next_y_vals;
-
-            double t = 0;
-
-            for(int i = 0; i < path_overlap; i++)
-            {
-              t += DT_MOTION;
-              next_x_vals.push_back(previous_path_x[i]);
-              next_y_vals.push_back(previous_path_y[i]);
-
-            }
-
-            t = 0;
-
-            for(int i = 0; i < N_POINTS_MOTION-path_overlap; i++)
-            {
-              double next_s = s_i[0] + (i+1)*dist_inc;
-              double next_d = d_i[0];
-
-              //cout << i << " s:" << next_s << " d:" << next_d;
-
-              t += DT_MOTION;
-              //next_s = trajectory->s(t);
-              //next_d = trajectory->d(t);
-
-              cout << i << " s:" << next_s << " d:" << next_d << endl;
-
-              //vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);//, map_waypoints_dx, map_waypoints_dy);
-              //vector<double> xy = _getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
-              track->setLocality(next_s);
-              vector<double> xy = track->getXY(next_s, next_d);
-
-              next_x_vals.push_back(xy[0]);
-              next_y_vals.push_back(xy[1]);
-            }
-
-            //print_vector(next_x_vals, "next_x_vals", -5);
-            //print_vector(next_y_vals, "next_y_vals", -5);
-            
-#endif
 
             count_i++;
 

@@ -1,3 +1,6 @@
+#ifndef _TRACK_
+#define _TRACK_
+
 
 #include <fstream>
 #include <math.h>
@@ -63,3 +66,5 @@ private:
     struct splines;
     struct splines * _splines;
 };
+
+#endif
