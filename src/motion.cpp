@@ -106,6 +106,8 @@ void Motion::generateMotion(Trajectory * trajectory, Map * track)
         ptsy.push_back(next_wp[1]);
     }
 
+    cout << endl;
+
 
     tk::spline splinex;
     splinex.set_points(ptss, ptsx);
