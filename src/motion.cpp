@@ -24,6 +24,7 @@ Motion::Motion():
 }
 
 void Motion::telemetry(
+    Map * track,
     double car_x,
     double car_y,
     double car_s,
@@ -67,7 +68,7 @@ void Motion::telemetry(
 
     _path_overlap = std::min((int)PREVIOUS_PATH_OVERLAP, prev_size);
 
-    calculateDerivatives();
+    calculateDerivatives(track);
 
 }
 
@@ -263,7 +264,7 @@ void Motion::getMotion(vector<double>& next_x_vals, vector<double>& next_y_vals)
 }
 
 
-double Motion::calculateDerivatives()
+double Motion::calculateDerivatives(Map * track)
 {
     if (_path_overlap < 3) {
         yaw_i = _car_yaw;
@@ -332,6 +333,10 @@ double Motion::calculateDerivatives()
         s_i__[0] = _previous_path_s[_path_overlap-3];
         d_i__[0] = _previous_path_d[_path_overlap-3]; 
 
+        double delta_s = s_i[0] - s_i_[0] + track->max_s;
+
+        while(delta_s > track->max_s)
+            delta_s -= track->max_s;
 
         s_i[1] = (s_i[0] - s_i_[0]) / DT_MOTION;
         d_i[1] = (d_i[0] - d_i_[0]) / DT_MOTION;

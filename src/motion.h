@@ -11,16 +11,17 @@ public:
     Motion();
 
     void telemetry(
-        double car_x,
-        double car_y,
-        double car_s,
-        double car_d,
-        double car_yaw,
-        double car_speed,
-        vector<double> previous_path_x,
-        vector<double> previous_path_y,
-        double end_path_s,
-        double end_path_d
+            Map * track,
+            double car_x,
+            double car_y,
+            double car_s,
+            double car_d,
+            double car_yaw,
+            double car_speed,
+            vector<double> previous_path_x,
+            vector<double> previous_path_y,
+            double end_path_s,
+            double end_path_d
         );
 
     void generateMotion(Trajectory * trajectory, Map * track);
@@ -35,7 +36,7 @@ public:
     double getInitYaw() { return yaw_i;}
 
 private:
-    double calculateDerivatives();
+    double calculateDerivatives(Map * track);
 
         double _car_x;
         double _car_y;
