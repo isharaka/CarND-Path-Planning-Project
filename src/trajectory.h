@@ -10,8 +10,12 @@ class Trajectory
 public:
     Trajectory();
 
+    static const double time_horizon;
+
     void generateCVTrajectory(vector<double>& s_i, vector<double>& d_i, vector<double>& s_f, vector<double>& d_f, double duration);
     void generateCATrajectory(vector<double>& s_i, vector<double>& d_i, vector<double>& s_f, vector<double>& d_f, double duration);
+    void generateJMTrajectory(vector<double>& s_i, vector<double>& d_i, vector<double>& s_f, vector<double>& d_f, double duration);
+
 
     double s(double t);
     double d(double t);

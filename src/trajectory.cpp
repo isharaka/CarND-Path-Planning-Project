@@ -11,6 +11,8 @@ using Eigen::VectorXd;
 
 using namespace std;
 
+const double Trajectory::time_horizon = 5.0;
+
 Trajectory::Trajectory()
 {
 
@@ -51,11 +53,11 @@ void Trajectory::generateCATrajectory(vector<double>& s_i, vector<double>& d_i, 
 
     _s_coeff.push_back(s_i[0]);
     _s_coeff.push_back(s_i[1]);
-    _s_coeff.push_back((s_f[1] - s_i[1])/(1*duration));
+    _s_coeff.push_back((s_f[1] - s_i[1])/(2*duration));
 
     _d_coeff.push_back(d_i[0]);
-    //_d_coeff.push_back(d_i[1]);
-    //_d_coeff.push_back((d_f[1] - d_i[1])/(1*duration));
+    _d_coeff.push_back(d_i[1]);
+    _d_coeff.push_back((d_f[1] - d_i[1])/(2*duration));
 
     cout << "s_i:" << s_i[0] << " s_f:" << s_f[0]
     << " s_i':" << s_i[1] << " s_f':" << s_f[1] << " dur:" << duration 
@@ -64,6 +66,16 @@ void Trajectory::generateCATrajectory(vector<double>& s_i, vector<double>& d_i, 
     << " d_i':" << d_i[1] << " d_f':" << d_f[1] << " dur:" << duration 
     << " c0:" << _d_coeff[0] << " c1:" << _d_coeff[1] << " c2:" << _d_coeff[2] << endl;
 }
+
+void Trajectory::generateJMTrajectory(vector<double>& s_i, vector<double>& d_i, vector<double>& s_f, vector<double>& d_f, double duration)
+{
+    _s_coeff.clear();
+    _d_coeff.clear();
+
+    _s_coeff = JMT(s_i, s_f, duration);
+    _d_coeff = JMT(d_i, d_f, duration);
+}
+
 
 double Trajectory::polyeval(vector<double>& c, double x)
 {

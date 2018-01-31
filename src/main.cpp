@@ -421,10 +421,15 @@ int main() {
 
             vector<double> s_f(3), d_f(3);
 
-            s_f[0] = s_i[0] + ref_vel * TRAJECTORY_HORIZON;
+
+            s_f[0] = s_i[0] + ref_vel * trajectory->time_horizon;
             d_f[0] = 2 + 4*lane;
 
-            trajectory->generateCVTrajectory(s_i, d_i, s_f, d_f, TRAJECTORY_HORIZON);
+            trajectory->generateCVTrajectory(s_i, d_i, s_f, d_f, trajectory->time_horizon);
+
+
+
+
 
 #if 1
             motion->generateMotion(trajectory, track);

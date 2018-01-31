@@ -13,9 +13,11 @@ void print_vector(vector<double>& vec, const string& name, int b, int e);
 
 
 
-#define N_POINTS_MOTION  50
-#define PREVIOUS_PATH_OVERLAP  25
-#define DT_MOTION  0.02
+#define N_POINTS_MOTION         50
+#define PREVIOUS_PATH_OVERLAP   25
+#define DT_MOTION               0.02
+
+#define N_TRAJECTORY_WAYPOINTS  3
 
 Motion::Motion():
     s_i(3), d_i(3), x_i(3), y_i(3), s_i_(3), d_i_(3), x_i_(3), y_i_(3)
@@ -91,8 +93,13 @@ void Motion::generateMotion(Trajectory * trajectory, Map * track)
     ptsy.push_back(y_i_[0]);
     ptsy.push_back(y_i[0]); 
 
-    for (int i = 30; i <= 90; i += 30) {
-        double t = trajectory->timeToDestination(s_i[0]+i);
+    double trajectory_distance = trajectory->s(trajectory->time_horizon) - trajectory->s(0);
+    double wp_distance = trajectory_distance / N_TRAJECTORY_WAYPOINTS;
+
+    cout << "trajectory_distance " << trajectory_distance << endl;
+
+    for (int i = 1; i <= N_TRAJECTORY_WAYPOINTS; ++i) {
+        double t = trajectory->timeToDestination(s_i[0] + i*wp_distance);
 
         double next_wp_s = trajectory->s(t);
         double next_wp_d = trajectory->d(t);
@@ -108,6 +115,11 @@ void Motion::generateMotion(Trajectory * trajectory, Map * track)
     }
 
     cout << endl;
+
+    print_vector(ptss, "ptss");
+    print_vector(ptsd, "ptsd");
+    print_vector(ptsx, "ptsx");
+    print_vector(ptsy, "ptsy");
 
 
     tk::spline splinex;
