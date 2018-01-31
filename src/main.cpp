@@ -380,12 +380,6 @@ int main() {
             vector<double> s_i = motion->getInitS();
             vector<double> d_i = motion->getInitD();
 
-            print_vector(s_i, "s_i");
-            print_vector(d_i, "d_i");
-
-            print_vector(x_i, "x_i");
-            print_vector(y_i, "y_i");
-
 
             int prev_size = previous_path_x.size();
            
@@ -421,13 +415,30 @@ int main() {
 
             vector<double> s_f(3), d_f(3);
 
-
+#if 0
             s_f[0] = s_i[0] + ref_vel * trajectory->time_horizon;
             d_f[0] = 2 + 4*lane;
 
             trajectory->generateCVTrajectory(s_i, d_i, s_f, d_f, trajectory->time_horizon);
+#else
+            d_f[0] = 2 + 4*lane;
+            d_f[1] = 0;
+            d_f[2] = 0;
 
+            s_f[0] = s_i[0] + (s_i[1] + 22) * TRAJECTORY_HORIZON / 2;
+            s_f[1] = 22;
+            s_f[2] = 0;
 
+            trajectory->generateJMTrajectory(s_i, d_i, s_f, d_f, trajectory->time_horizon);
+
+            print_vector(s_i, "s_i");
+            print_vector(d_i, "d_i");
+            print_vector(s_f, "s_f");
+            print_vector(d_f, "d_f");
+
+            print_vector(x_i, "x_i");
+            print_vector(y_i, "y_i");
+#endif
 
 
 

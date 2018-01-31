@@ -6,6 +6,9 @@
 #include "Eigen-3.3/Eigen/Dense"
 #include "trajectory.h"
 
+void print_vector(vector<double>& vec, const string& name, int n=0);
+void print_vector(vector<double>& vec, const string& name, int b, int e);
+
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
@@ -146,5 +149,7 @@ vector<double> Trajectory::JMT(vector<double> start, vector<double> end, double 
 
     
     vector<double> output = {start[0], start[1], 0.5*start[2], alpha[0], alpha[1], alpha[2]};
+
+    print_vector(output, "jmt");
     return output;
 }

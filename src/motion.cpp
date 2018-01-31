@@ -93,13 +93,10 @@ void Motion::generateMotion(Trajectory * trajectory, Map * track)
     ptsy.push_back(y_i_[0]);
     ptsy.push_back(y_i[0]); 
 
-    double trajectory_distance = trajectory->s(trajectory->time_horizon) - trajectory->s(0);
-    double wp_distance = trajectory_distance / N_TRAJECTORY_WAYPOINTS;
-
-    cout << "trajectory_distance " << trajectory_distance << endl;
+    double wp_t = trajectory->time_horizon / N_TRAJECTORY_WAYPOINTS;
 
     for (int i = 1; i <= N_TRAJECTORY_WAYPOINTS; ++i) {
-        double t = trajectory->timeToDestination(s_i[0] + i*wp_distance);
+        double t = i * wp_t;
 
         double next_wp_s = trajectory->s(t);
         double next_wp_d = trajectory->d(t);
