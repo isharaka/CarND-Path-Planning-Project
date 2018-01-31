@@ -46,13 +46,26 @@ void print_vector(vector<double>& vec, const string& name, int n=0)
   int start = 0;
   int end = vec.size();
 
-  std::cout << name << " (" << vec.size() << ") " ;
 
   if (n > 0) {
     end = std::min(n,end);
   } else if (n < 0) {
     start = std::max(end+n, start);
   }
+  std::cout << name << " (" << vec.size() <<' '<< start << ' ' << end << ") " ;
+
+  for (int i=start; i < end; i++)
+    std::cout << vec[i] << ' ';
+
+  std::cout << std::endl;
+}
+
+void print_vector(vector<double>& vec, const string& name, int b, int e)
+{
+  int start = std::max(std::min(b, (int)vec.size()),0);
+  int end = std::max(std::min(std::max(b,e), (int)vec.size()),0);
+
+  std::cout << name << " (" << vec.size() <<' '<< start << ' ' << end << ") " ;
 
   for (int i=start; i < end; i++)
     std::cout << vec[i] << ' ';
@@ -504,13 +517,15 @@ int main() {
 
 
 
-            //print_vector(previous_path_s, "previous_path_s-", 5);
+            print_vector(previous_path_s, "previous_path_s-", 5);
             //print_vector(previous_path_x, "previous_path_x-", 5);
             //print_vector(previous_path_y, "previous_path_y-", 5);
 
-            //print_vector(previous_path_s, "-previous_path_s", -5);
+            print_vector(previous_path_s, "-previous_path_s", -5);
             //print_vector(previous_path_x, "-previous_path_x", -5);
             //print_vector(previous_path_y, "-previous_path_y", -5);
+
+            print_vector(previous_path_s, "-previous_path_s", path_overlap-4, path_overlap+4);
 
            
             if (prev_size == 0) {
@@ -636,21 +651,24 @@ int main() {
             }
 
             print_vector(s_i, "s_i");
-            print_vector(d_i, "d_i");
+            print_vector(s_i_, "s_i_");
 
-            print_vector(x_i, "x_i");
-            print_vector(y_i, "y_i");
+            //print_vector(s_i, "s_i");
+            //print_vector(d_i, "d_i");
+
+            //print_vector(x_i, "x_i");
+            //print_vector(y_i, "y_i");
 
             vector<double> tx_i = motion->getInitX();
             vector<double> ty_i = motion->getInitY();
             vector<double> ts_i = motion->getInitS();
             vector<double> td_i = motion->getInitD();
 
-            print_vector(ts_i, "ts_i");
-            print_vector(td_i, "td_i");
+            //print_vector(ts_i, "ts_i");
+            //print_vector(td_i, "td_i");
 
-            print_vector(tx_i, "tx_i");
-            print_vector(ty_i, "ty_i");
+            //print_vector(tx_i, "tx_i");
+            //print_vector(ty_i, "ty_i");
 
 
             s_f[0] = s_i[0] + ref_vel * TRAJECTORY_HORIZON;
@@ -661,9 +679,13 @@ int main() {
             vector<double> ptsx;
             vector<double> ptsy;
             vector<double> ptss;
+            vector<double> ptsd;
         
             ptss.push_back(s_i_[0]);
             ptss.push_back(s_i[0]);
+
+            ptsd.push_back(d_i_[0]);
+            ptsd.push_back(d_i[0]);
 
             ptsx.push_back(x_i_[0]);
             ptsx.push_back(x_i[0]);
@@ -676,18 +698,31 @@ int main() {
               //vector<double> next_wp = getXY(car_s+i, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
               double t = trajectory->timeToDestination(s_i[0]+i);
 
-              vector<double> next_wp = track->getXY(trajectory->s(t), trajectory->d(t));
-              //cout <<"t:" << t << " ";
+              double next_wp_s = trajectory->s(t);
+              double next_wp_d = trajectory->d(t);
+
+              //double next_wp_s = s_i[0]+i;
+              //double next_wp_d = 2+4*lane;
+
+              vector<double> next_wp = track->getXY(next_wp_s, next_wp_d);
+              cout <<"t:" << t << " ";
               //print_vector(next_wp, "next_wp");
 
               //vector<double> next_wp = track->getXY(s_i[0]+i, (2+4*lane));
 
-              ptss.push_back(s_i[0]+i);
+
+              ptss.push_back(next_wp_s);
+              ptsd.push_back(next_wp_d);
+
+
               ptsx.push_back(next_wp[0]);
               ptsy.push_back(next_wp[1]);
             }
 
+            cout <<endl;
+
             print_vector(ptss, "ptss");
+            print_vector(ptsd, "ptsd");
             print_vector(ptsx, "ptsx");
             print_vector(ptsy, "ptsy");
 
@@ -712,7 +747,7 @@ int main() {
             print_vector(ptsx, "car ptsx");
             print_vector(ptsy, "car ptsy");
 
-#if 0
+#if 1
             tk::spline splinex;
             splinex.set_points(ptss, ptsx);
 
@@ -736,7 +771,7 @@ int main() {
               next_d_vals.push_back(previous_path_d[i]);
             }
 
-#if 0
+#if 1
             for(int i = 0; i < N_POINTS_MOTION-path_overlap; i++) {
               double t = (i+1) * DT_MOTION;
 
@@ -777,32 +812,35 @@ int main() {
               double x_point_map = ref_x + next_x_vals[i]*cos(ref_yaw) - next_y_vals[i]*sin(ref_yaw);
               double y_point_map = ref_y + next_x_vals[i]*sin(ref_yaw) + next_y_vals[i]*cos(ref_yaw);
 
-#if 0
+#if 1
               next_s_vals[i] += ref_s;
+
+              //while(next_s_vals[i] > TRACK_LENGTH)
+              //  next_s_vals[i] -= TRACK_LENGTH;
 #else
               double theta = (i > 0) ? atan2(y_point_map - next_y_vals[i-1], x_point_map - next_x_vals[i-1]) : yaw_i; 
               vector<double> sd = track->getFrenet(x_point_map, y_point_map, theta);
-
-
-              next_x_vals[i] = x_point_map;
-              next_y_vals[i] = y_point_map;
               next_s_vals.push_back(sd[0]);
               next_d_vals.push_back(sd[1]);
 #endif
+
+              next_x_vals[i] = x_point_map;
+              next_y_vals[i] = y_point_map;
+
             }
 
-            //print_vector(next_s_vals, "next_s_vals-", 5);
-            //print_vector(next_x_vals, "next_x_vals-", 5);
-            //print_vector(next_y_vals, "next_y_vals-", 5);
+            print_vector(next_s_vals, "next_s_vals-", 10);
+            print_vector(next_x_vals, "next_x_vals-", 10);
+            print_vector(next_y_vals, "next_y_vals-", 10);
 
-            //print_vector(next_s_vals, "-next_s_vals", -5);
-            //print_vector(next_x_vals, "-next_x_vals", -5);
-            //print_vector(next_y_vals, "-next_y_vals", -5);
+            print_vector(next_s_vals, "-next_s_vals", -10);
+            print_vector(next_x_vals, "-next_x_vals", -10);
+            print_vector(next_y_vals, "-next_y_vals", -10);
 
 
             count_i++;
 
-            //if (count_i >= 10)
+            //if (count_i >= 2)
             //exit(0);
 
             std::cout << std::endl;

@@ -156,6 +156,10 @@ vector<double> Map::getFrenet(double x, double y, double theta, bool fine, bool 
 
 vector<double> Map::getXY(double s, double d, bool fine, bool localize)
 {
+    while (s >= max_s)
+        s -= max_s;
+
+
     if (fine) {
         if (localize)
             setLocality(s);
