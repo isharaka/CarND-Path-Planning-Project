@@ -650,32 +650,36 @@ int main() {
 
             }
 
-            print_vector(s_i, "s_i");
-            print_vector(s_i_, "s_i_");
-
             //print_vector(s_i, "s_i");
-            //print_vector(d_i, "d_i");
+            //print_vector(s_i_, "s_i_");
 
-            //print_vector(x_i, "x_i");
-            //print_vector(y_i, "y_i");
+            print_vector(s_i, "s_i");
+            print_vector(d_i, "d_i");
+
+            print_vector(x_i, "x_i");
+            print_vector(y_i, "y_i");
 
             vector<double> tx_i = motion->getInitX();
             vector<double> ty_i = motion->getInitY();
             vector<double> ts_i = motion->getInitS();
             vector<double> td_i = motion->getInitD();
 
-            //print_vector(ts_i, "ts_i");
-            //print_vector(td_i, "td_i");
+            print_vector(ts_i, "M s_i");
+            print_vector(td_i, "M d_i");
 
-            //print_vector(tx_i, "tx_i");
-            //print_vector(ty_i, "ty_i");
+            print_vector(tx_i, "M x_i");
+            print_vector(ty_i, "M y_i");
 
 
             s_f[0] = s_i[0] + ref_vel * TRAJECTORY_HORIZON;
             d_f[0] = 2 + 4*lane;
 
             trajectory->generateCVTrajectory(s_i, d_i, s_f, d_f, TRAJECTORY_HORIZON);
-
+#if 1
+            motion->generateMotion(trajectory, track);
+#else
+            motion->generateMotion(trajectory, track, lane, ref_vel);
+#endif
             vector<double> ptsx;
             vector<double> ptsy;
             vector<double> ptss;
@@ -706,7 +710,6 @@ int main() {
               double next_wp_d = 2+4*lane;
 #endif
               vector<double> next_wp = track->getXY(next_wp_s, next_wp_d);
-              cout <<"t:" << t << " ";
 
               ptss.push_back(next_wp_s);
               ptsd.push_back(next_wp_d);
@@ -722,13 +725,6 @@ int main() {
             print_vector(ptsx, "ptsx");
             print_vector(ptsy, "ptsy");
 
-
-            double ref_s = s_i[0];
-            double ref_x = x_i[0];
-            double ref_y = y_i[0];
-            double ref_yaw = yaw_i;
-
-
 #if 1
             tk::spline splinex;
             splinex.set_points(ptss, ptsx);
@@ -736,6 +732,11 @@ int main() {
             tk::spline spliney;
             spliney.set_points(ptss, ptsy);
 #else
+            double ref_s = s_i[0];
+            double ref_x = x_i[0];
+            double ref_y = y_i[0];
+            double ref_yaw = yaw_i;
+
             for (int i=0; i < ptsx.size(); i++) {
               double shift_x = ptsx[i] - ref_x;
               double shift_y = ptsy[i] - ref_y;
@@ -799,14 +800,9 @@ int main() {
               next_x_vals.push_back(x_point);
               next_y_vals.push_back(y_point);
             }
-#endif
 
             for(int i = path_overlap; i < N_POINTS_MOTION; i++) {
 
-
-#if 1
-              //next_s_vals[i] += ref_s;
-#else
               double x_point_map = ref_x + next_x_vals[i]*cos(ref_yaw) - next_y_vals[i]*sin(ref_yaw);
               double y_point_map = ref_y + next_x_vals[i]*sin(ref_yaw) + next_y_vals[i]*cos(ref_yaw);
 
@@ -817,17 +813,27 @@ int main() {
 
               next_x_vals[i] = x_point_map;
               next_y_vals[i] = y_point_map;
+            }
 #endif
 
-            }
+            vector<double> _next_x_vals;
+            vector<double> _next_y_vals;
+
+            motion->getMotion(_next_x_vals, _next_y_vals);
 
             print_vector(next_s_vals, "next_s_vals-", 10);
             print_vector(next_x_vals, "next_x_vals-", 10);
             print_vector(next_y_vals, "next_y_vals-", 10);
 
+            print_vector(_next_x_vals, "M next_x_vals-", 10);
+            print_vector(_next_y_vals, "M next_y_vals-", 10);
+
             print_vector(next_s_vals, "-next_s_vals", -10);
             print_vector(next_x_vals, "-next_x_vals", -10);
             print_vector(next_y_vals, "-next_y_vals", -10);
+
+            print_vector(_next_x_vals, "M next_x_vals", -10);
+            print_vector(_next_y_vals, "M next_y_vals", -10);
 
 
             count_i++;
@@ -841,8 +847,8 @@ int main() {
 
 
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-          	msgJson["next_x"] = next_x_vals;
-          	msgJson["next_y"] = next_y_vals;
+          	msgJson["next_x"] = _next_x_vals;
+          	msgJson["next_y"] = _next_y_vals;
 
           	auto msg = "42[\"control\","+ msgJson.dump()+"]";
 

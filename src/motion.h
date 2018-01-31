@@ -24,6 +24,8 @@ public:
         );
 
     void generateMotion(Trajectory * trajectory, Map * track);
+    void generateMotion(Trajectory * trajectory, Map * track, int lane, double ref_vel);
+
     void getMotion(vector<double>& next_x_vals, vector<double>& next_y_vals);
 
     vector<double> getInitS() { return s_i;}

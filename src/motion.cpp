@@ -4,8 +4,13 @@
 #include <vector>
 
 #include "Eigen-3.3/Eigen/Dense"
+#include "spline.h"
 
 #include "motion.h"
+
+void print_vector(vector<double>& vec, const string& name, int n=0);
+void print_vector(vector<double>& vec, const string& name, int b, int e);
+
 
 
 #define N_POINTS_MOTION  50
@@ -49,8 +54,8 @@ void Motion::telemetry(
     _previous_path_d.clear();
 
     for (int i = N_POINTS_MOTION - _previous_path_x.size(); i < N_POINTS_MOTION; ++i) {
-      //_previous_path_s.push_back(_next_s_vals[i]);
-      //_previous_path_d.push_back(_next_d_vals[i]);
+      _previous_path_s.push_back(_next_s_vals[i]);
+      _previous_path_d.push_back(_next_d_vals[i]);
     }
 
     int prev_size = previous_path_x.size();
@@ -62,18 +67,197 @@ void Motion::telemetry(
 
     _path_overlap = std::min((int)PREVIOUS_PATH_OVERLAP, prev_size);
 
-    //calculateDerivatives();
+    calculateDerivatives();
 
 }
 
 void Motion::generateMotion(Trajectory * trajectory, Map * track)
 {
+    vector<double> ptsx;
+    vector<double> ptsy;
+    vector<double> ptss;
+    vector<double> ptsd;
+        
+    ptss.push_back(s_i_[0]);
+    ptss.push_back(s_i[0]);
+
+    ptsd.push_back(d_i_[0]);
+    ptsd.push_back(d_i[0]);
+
+    ptsx.push_back(x_i_[0]);
+    ptsx.push_back(x_i[0]);
+
+    ptsy.push_back(y_i_[0]);
+    ptsy.push_back(y_i[0]); 
+
+    for (int i = 30; i <= 90; i += 30) {
+        double t = trajectory->timeToDestination(s_i[0]+i);
+
+        double next_wp_s = trajectory->s(t);
+        double next_wp_d = trajectory->d(t);
+
+        vector<double> next_wp = track->getXY(next_wp_s, next_wp_d);
+        cout <<"t:" << t << " ";
+
+        ptss.push_back(next_wp_s);
+        ptsd.push_back(next_wp_d);
+
+        ptsx.push_back(next_wp[0]);
+        ptsy.push_back(next_wp[1]);
+    }
+
+
+    tk::spline splinex;
+    splinex.set_points(ptss, ptsx);
+
+    tk::spline spliney;
+    spliney.set_points(ptss, ptsy);
+
+    _next_s_vals.clear();
+    _next_d_vals.clear();
+    _next_x_vals.clear();
+    _next_y_vals.clear();
+
+
+    for(int i = 0; i < _path_overlap; i++)
+    {
+        _next_x_vals.push_back(_previous_path_x[i]);
+        _next_y_vals.push_back(_previous_path_y[i]);
+        _next_s_vals.push_back(_previous_path_s[i]);
+        _next_d_vals.push_back(_previous_path_d[i]);
+    }
+
+    for(int i = 0; i < N_POINTS_MOTION-_path_overlap; i++) {
+        double t = (i+1) * DT_MOTION;
+
+        double s_point = trajectory->s(t);// - ref_s;//t * ref_vel;
+        double d_point = trajectory->d(t);
+        double x_point = splinex(s_point);
+        double y_point = spliney(s_point);
+
+        _next_s_vals.push_back(s_point);
+        _next_d_vals.push_back(d_point);
+        _next_x_vals.push_back(x_point);
+        _next_y_vals.push_back(y_point);
+    }
+
+
+}
+
+void Motion::generateMotion(Trajectory * trajectory, Map * track, int lane, double ref_vel)
+{
+    vector<double> ptsx;
+    vector<double> ptsy;
+    vector<double> ptss;
+    vector<double> ptsd;
+        
+    ptss.push_back(s_i_[0]);
+    ptss.push_back(s_i[0]);
+
+    ptsd.push_back(d_i_[0]);
+    ptsd.push_back(d_i[0]);
+
+    ptsx.push_back(x_i_[0]);
+    ptsx.push_back(x_i[0]);
+
+    ptsy.push_back(y_i_[0]);
+    ptsy.push_back(y_i[0]); 
+
+    for (int i = 30; i <= 90; i += 30) {
+        double next_wp_s = s_i[0]+i;
+        double next_wp_d = 2+4*lane;
+
+        vector<double> next_wp = track->getXY(next_wp_s, next_wp_d);
+        ptss.push_back(next_wp_s);
+        ptsd.push_back(next_wp_d);
+
+        ptsx.push_back(next_wp[0]);
+        ptsy.push_back(next_wp[1]);
+    }
+
+
+    double ref_s = s_i[0];
+    double ref_x = x_i[0];
+    double ref_y = y_i[0];
+    double ref_yaw = yaw_i;
+
+
+    for (int i=0; i < ptsx.size(); i++) {
+        double shift_x = ptsx[i] - ref_x;
+        double shift_y = ptsy[i] - ref_y;
+
+        ptss[i] = ptss[i] - ref_s;
+        ptsx[i] = shift_x*cos(ref_yaw) + shift_y*sin(ref_yaw);
+        ptsy[i] = -shift_x*sin(ref_yaw) + shift_y*cos(ref_yaw);
+    }
+
+    //print_vector(ptss, "M car ptss");
+    //print_vector(ptsx, "M car ptsx");
+    //print_vector(ptsy, "M car ptsy");
+
+    tk::spline s;
+    s.set_points(ptsx, ptsy);
+
+    _next_s_vals.clear();
+    _next_d_vals.clear();
+    _next_x_vals.clear();
+    _next_y_vals.clear();
+
+
+    for(int i = 0; i < _path_overlap; i++)
+    {
+        _next_x_vals.push_back(_previous_path_x[i]);
+        _next_y_vals.push_back(_previous_path_y[i]);
+        _next_s_vals.push_back(_previous_path_s[i]);
+        _next_d_vals.push_back(_previous_path_d[i]);
+    }
+
+
+    double target_x = 30.0;
+    double target_y = s(target_x);
+    double target_dist = sqrt(target_x*target_x + target_y*target_y);
+
+    double x_add_on = 0;
+    double N = (target_dist/(DT_MOTION*ref_vel));
+
+
+    for(int i = 0; i < N_POINTS_MOTION - _path_overlap; i++) {
+        double x_point = x_add_on + target_x/N;
+        double y_point = s(x_point);
+
+        x_add_on = x_point;
+
+        _next_x_vals.push_back(x_point);
+        _next_y_vals.push_back(y_point);
+    }
+
+    //print_vector(_next_s_vals, "M next_s_vals-", 10);
+    //print_vector(_next_x_vals, "M next_x_vals-", 10);
+    //print_vector(_next_y_vals, "M next_y_vals-", 10);
+
+
+    for(int i = _path_overlap; i < N_POINTS_MOTION; i++) {
+
+        double x_point_map = ref_x + _next_x_vals[i]*cos(ref_yaw) - _next_y_vals[i]*sin(ref_yaw);
+        double y_point_map = ref_y + _next_x_vals[i]*sin(ref_yaw) + _next_y_vals[i]*cos(ref_yaw);
+
+        double theta = (i > 0) ? atan2(y_point_map - _next_y_vals[i-1], x_point_map - _next_x_vals[i-1]) : yaw_i; 
+        vector<double> sd = track->getFrenet(x_point_map, y_point_map, theta);
+        _next_s_vals.push_back(sd[0]);
+        _next_d_vals.push_back(sd[1]);
+
+        _next_x_vals[i] = x_point_map;
+        _next_y_vals[i] = y_point_map;
+
+
+    }
 
 }
 
 void Motion::getMotion(vector<double>& next_x_vals, vector<double>& next_y_vals)
 {
-    
+    next_x_vals = _next_x_vals;
+    next_y_vals = _next_y_vals;
 }
 
 
