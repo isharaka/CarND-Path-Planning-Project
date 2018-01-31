@@ -696,24 +696,20 @@ int main() {
 
             for (int i = 30; i <= 90; i += 30) {
               //vector<double> next_wp = getXY(car_s+i, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+#if 1
               double t = trajectory->timeToDestination(s_i[0]+i);
 
               double next_wp_s = trajectory->s(t);
               double next_wp_d = trajectory->d(t);
-
-              //double next_wp_s = s_i[0]+i;
-              //double next_wp_d = 2+4*lane;
-
+#else
+              double next_wp_s = s_i[0]+i;
+              double next_wp_d = 2+4*lane;
+#endif
               vector<double> next_wp = track->getXY(next_wp_s, next_wp_d);
               cout <<"t:" << t << " ";
-              //print_vector(next_wp, "next_wp");
-
-              //vector<double> next_wp = track->getXY(s_i[0]+i, (2+4*lane));
-
 
               ptss.push_back(next_wp_s);
               ptsd.push_back(next_wp_d);
-
 
               ptsx.push_back(next_wp[0]);
               ptsy.push_back(next_wp[1]);
@@ -733,6 +729,13 @@ int main() {
             double ref_yaw = yaw_i;
 
 
+#if 1
+            tk::spline splinex;
+            splinex.set_points(ptss, ptsx);
+
+            tk::spline spliney;
+            spliney.set_points(ptss, ptsy);
+#else
             for (int i=0; i < ptsx.size(); i++) {
               double shift_x = ptsx[i] - ref_x;
               double shift_y = ptsy[i] - ref_y;
@@ -742,18 +745,11 @@ int main() {
               ptsy[i] = -shift_x*sin(ref_yaw) + shift_y*cos(ref_yaw);
             }
 
-
             print_vector(ptss, "car ptss");
             print_vector(ptsx, "car ptsx");
             print_vector(ptsy, "car ptsy");
 
-#if 1
-            tk::spline splinex;
-            splinex.set_points(ptss, ptsx);
 
-            tk::spline spliney;
-            spliney.set_points(ptss, ptsy);
-#else
             tk::spline s;
             s.set_points(ptsx, ptsy);
 #endif
@@ -775,7 +771,7 @@ int main() {
             for(int i = 0; i < N_POINTS_MOTION-path_overlap; i++) {
               double t = (i+1) * DT_MOTION;
 
-              double s_point = trajectory->s(t) - ref_s;//t * ref_vel;
+              double s_point = trajectory->s(t);// - ref_s;//t * ref_vel;
               double d_point = trajectory->d(t);
               double x_point = splinex(s_point);
               double y_point = spliney(s_point);
@@ -786,8 +782,6 @@ int main() {
               next_y_vals.push_back(y_point);
             }
 #else
-
-
             double target_x = 30.0;
             double target_y = s(target_x);
             double target_dist = sqrt(target_x*target_x + target_y*target_y);
@@ -809,23 +803,21 @@ int main() {
 
             for(int i = path_overlap; i < N_POINTS_MOTION; i++) {
 
+
+#if 1
+              //next_s_vals[i] += ref_s;
+#else
               double x_point_map = ref_x + next_x_vals[i]*cos(ref_yaw) - next_y_vals[i]*sin(ref_yaw);
               double y_point_map = ref_y + next_x_vals[i]*sin(ref_yaw) + next_y_vals[i]*cos(ref_yaw);
 
-#if 1
-              next_s_vals[i] += ref_s;
-
-              //while(next_s_vals[i] > TRACK_LENGTH)
-              //  next_s_vals[i] -= TRACK_LENGTH;
-#else
               double theta = (i > 0) ? atan2(y_point_map - next_y_vals[i-1], x_point_map - next_x_vals[i-1]) : yaw_i; 
               vector<double> sd = track->getFrenet(x_point_map, y_point_map, theta);
               next_s_vals.push_back(sd[0]);
               next_d_vals.push_back(sd[1]);
-#endif
 
               next_x_vals[i] = x_point_map;
               next_y_vals[i] = y_point_map;
+#endif
 
             }
 
