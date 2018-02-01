@@ -103,8 +103,8 @@ void Motion::generateMotion(Trajectory * trajectory, Map * track)
     for (int i = 1; i <= N_TRAJECTORY_WAYPOINTS; ++i) {
         double t = i * wp_t;
 
-        double next_wp_s = trajectory->s(t);
-        double next_wp_d = trajectory->d(t);
+        double next_wp_s = trajectory->s(t)[0];
+        double next_wp_d = trajectory->d(t)[0];
 
         vector<double> next_wp = track->getXY(next_wp_s, next_wp_d);
         //cout <<"t:" << t << " ";
@@ -147,8 +147,8 @@ void Motion::generateMotion(Trajectory * trajectory, Map * track)
     for(int i = 0; i < N_POINTS_MOTION-_path_overlap; i++) {
         double t = (i+1) * DT_MOTION;
 
-        double s_point = trajectory->s(t);// - ref_s;//t * ref_vel;
-        double d_point = trajectory->d(t);
+        double s_point = trajectory->s(t)[0];// - ref_s;//t * ref_vel;
+        double d_point = trajectory->d(t)[0];
         double x_point = splinex(s_point);
         double y_point = spliney(s_point);
 

@@ -21,25 +21,16 @@ Trajectory::Trajectory()
 
 }
 
-double Trajectory::s(double t)
+vector<double> Trajectory::s(double t)
 {
-    return polyeval(_s_coeff, t);
+    vector<double> s_dot_coeff = polyderiv(_s_coeff);
+
+    return { polyeval(_s_coeff, t), polyeval(s_dot_coeff, t), 0 };
 }
 
-double Trajectory::d(double t)
+vector<double> Trajectory::d(double t)
 {
-    return polyeval(_d_coeff, t);
-}
-
-
-double Trajectory::s_dot(double t)
-{
-    vector<double> s_dot_coeff;
-
-    for (int i = 1; i < _s_coeff.size(); ++i)
-        s_dot_coeff.push_back(i*_s_coeff[i]);
-
-    return polyeval(s_dot_coeff, t);
+    return {polyeval(_d_coeff, t), 0, 0};
 }
 
 
@@ -96,6 +87,16 @@ double Trajectory::polyeval(vector<double>& c, double x)
     double result = 0.0;
     for (int i = 0; i < c.size(); ++i)
         result += c[i]*pow(x,i);
+}
+
+vector<double> Trajectory::polyderiv(vector<double>& c)
+{
+    vector<double> derivative;
+
+    for (int i = 1; i < c.size(); ++i)
+        derivative.push_back(i*c[i]);
+
+    return derivative;
 }
 
 double Trajectory::timeToDestination(double s)

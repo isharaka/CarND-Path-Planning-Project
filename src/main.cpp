@@ -420,7 +420,7 @@ int main() {
 
             cout << "travel t:" << motion->getPreviousPathTravelTime() << " overlap:" << motion->getPreviousPathOverlapTime() <<
               " pre init s:" << motion->getPreviousInitS()[0] << " pre init d:" << motion->getPreviousInitD()[0] << 
-              " pre s(0):" << trajectory->s(0) << " pre s dot(0):" << trajectory->s_dot(0)  << endl;
+              " pre s(0):" << trajectory->s(0)[0] << " pre s dot(0):" << trajectory->s(0)[1]  << endl;
 
             vector<vector<vector<double>>> predictions = prediction->predict(motion->getPreviousPathOverlapTime() + trajectory->time_horizon);
             
@@ -431,10 +431,8 @@ int main() {
 
             bool too_close = false;
 
-            predicted_ego_s[0] = trajectory->s(motion->getPreviousPathTravelTime() + trajectory->time_horizon);
-            predicted_ego_s[1] = trajectory->s_dot(motion->getPreviousPathTravelTime() + trajectory->time_horizon);
-
-            predicted_ego_d[0] = trajectory->d(motion->getPreviousPathTravelTime() + trajectory->time_horizon);
+            predicted_ego_s = trajectory->s(motion->getPreviousPathTravelTime() + trajectory->time_horizon);
+            predicted_ego_d = trajectory->d(motion->getPreviousPathTravelTime() + trajectory->time_horizon);
 
             for (int i=0; i < predictions.size(); i++) {
               double d = predictions[i][1][0];

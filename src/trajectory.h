@@ -17,9 +17,8 @@ public:
     void generateJMTrajectory(vector<double>& s_i, vector<double>& d_i, vector<double>& s_f, vector<double>& d_f, double duration);
 
 
-    double s(double t);
-    double d(double t);
-    double s_dot(double t);
+    vector<double> s(double t);
+    vector<double> d(double t);
 
     double timeToDestination(double s);
 
@@ -28,7 +27,9 @@ private:
     vector<double> _d_coeff;
 
     vector<double> JMT(vector<double> start, vector<double> end, double T);
+
     double polyeval(vector<double>& c, double x);
+    vector<double> polyderiv(vector<double>& c);
 
 };
 
