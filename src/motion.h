@@ -35,6 +35,12 @@ public:
     vector<double> getInitY() { return y_i;}
     double getInitYaw() { return yaw_i;}
 
+    vector<double> getPreviousInitS() { return _previous_s_i;}
+    vector<double> getPreviousInitD() { return _previous_d_i;}
+    double getPreviousPathTravelTime();
+    double getPreviousPathOverlapTime();
+
+
 private:
     double calculateDerivatives(Map * track);
 
@@ -50,6 +56,8 @@ private:
         vector<double> _previous_path_d;
         double _end_path_s;
         double _end_path_d;
+        vector<double> _previous_s_i;
+        vector<double> _previous_d_i;
 
         vector<double> _next_x_vals;
         vector<double> _next_y_vals;

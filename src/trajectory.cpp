@@ -14,7 +14,7 @@ using Eigen::VectorXd;
 
 using namespace std;
 
-const double Trajectory::time_horizon = 5.0;
+const double Trajectory::time_horizon = 2.0;
 
 Trajectory::Trajectory()
 {
@@ -29,6 +29,17 @@ double Trajectory::s(double t)
 double Trajectory::d(double t)
 {
     return polyeval(_d_coeff, t);
+}
+
+
+double Trajectory::s_dot(double t)
+{
+    vector<double> s_dot_coeff;
+
+    for (int i = 1; i < _s_coeff.size(); ++i)
+        s_dot_coeff.push_back(i*_s_coeff[i]);
+
+    return polyeval(s_dot_coeff, t);
 }
 
 

@@ -19,6 +19,7 @@ public:
 
     double s(double t);
     double d(double t);
+    double s_dot(double t);
 
     double timeToDestination(double s);
 

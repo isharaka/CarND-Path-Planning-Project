@@ -13,6 +13,7 @@
 #include "map.h"
 #include "trajectory.h"
 #include "motion.h"
+#include "prediction.h"
 
 using namespace std;
 
@@ -228,10 +229,11 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 
 
   int lane = 1;
-  double ref_vel = 0; // mph
+  double ref_vel = 20; 
   Map * track;
   Trajectory * trajectory;
   Motion * motion;
+  Prediction * prediction;
 
   int count_i = 0;
 
@@ -276,6 +278,7 @@ int main() {
   track = new Map();
   trajectory = new Trajectory();
   motion = new Motion();
+  prediction = new Prediction();
 
   double sd[][2]={{0, 0},{120.7,10},{6875,-10},{6920,0}};
   //double sd[][2]={{384, 0},{390.7,0},{745,0},{760,0}};
@@ -374,6 +377,7 @@ int main() {
 
 
             motion->telemetry(track, car_x, car_y, car_s, car_d, deg2rad(car_yaw), car_speed, previous_path_x, previous_path_y, end_path_s, end_path_d);
+            prediction->telemetry(track, car_x, car_y, car_s, car_d, deg2rad(car_yaw), car_speed, previous_path_x, previous_path_y, end_path_s, end_path_d, sensor_fusion);
 
             vector<double> x_i = motion->getInitX();
             vector<double> y_i = motion->getInitY();
@@ -381,6 +385,7 @@ int main() {
             vector<double> d_i = motion->getInitD();
 
 
+#if 0
             int prev_size = previous_path_x.size();
            
             if (prev_size == 0) {
@@ -411,7 +416,48 @@ int main() {
             } else if (ref_vel < 22) {
               ref_vel += 0.1;
             }
+#else
 
+            cout << "travel t:" << motion->getPreviousPathTravelTime() << " overlap:" << motion->getPreviousPathOverlapTime() <<
+              " pre init s:" << motion->getPreviousInitS()[0] << " pre init d:" << motion->getPreviousInitD()[0] << 
+              " pre s(0):" << trajectory->s(0) << " pre s dot(0):" << trajectory->s_dot(0)  << endl;
+
+            vector<vector<vector<double>>> predictions = prediction->predict(motion->getPreviousPathOverlapTime() + trajectory->time_horizon);
+            
+            vector<double> predicted_ego_s(3);
+            vector<double> predicted_ego_d(3);
+
+            vector<double> lead_car_s(3);
+
+            bool too_close = false;
+
+            predicted_ego_s[0] = trajectory->s(motion->getPreviousPathTravelTime() + trajectory->time_horizon);
+            predicted_ego_s[1] = trajectory->s_dot(motion->getPreviousPathTravelTime() + trajectory->time_horizon);
+
+            predicted_ego_d[0] = trajectory->d(motion->getPreviousPathTravelTime() + trajectory->time_horizon);
+
+            for (int i=0; i < predictions.size(); i++) {
+              double d = predictions[i][1][0];
+
+              if (d < (2+4*lane+2) && d > (2+4*lane-2)) {
+                double other_car_s = predictions[i][0][0];
+
+                if (other_car_s > predicted_ego_s[0] && (other_car_s - predicted_ego_s[0]) < 30) {
+                  lead_car_s[0] = other_car_s;
+                  lead_car_s[1] = predictions[i][0][1];
+
+                  too_close = true;
+                }
+              }
+            }
+
+            if (too_close) {
+              ref_vel -= 1;
+            } else if (ref_vel < 22) {
+              ref_vel += 1;
+            }
+
+#endif
 
             vector<double> s_f(3), d_f(3);
 
@@ -425,11 +471,9 @@ int main() {
             d_f[1] = 0;
             d_f[2] = 0;
 
-            s_f[0] = s_i[0] + (s_i[1] + 22) * TRAJECTORY_HORIZON / 2;
-            s_f[1] = 22;
+            s_f[0] = s_i[0] + (s_i[1] + ref_vel) * trajectory->time_horizon / 2;
+            s_f[1] = ref_vel;
             s_f[2] = 0;
-
-            trajectory->generateJMTrajectory(s_i, d_i, s_f, d_f, trajectory->time_horizon);
 
             print_vector(s_i, "s_i");
             print_vector(d_i, "d_i");
@@ -438,6 +482,9 @@ int main() {
 
             print_vector(x_i, "x_i");
             print_vector(y_i, "y_i");
+
+            trajectory->generateJMTrajectory(s_i, d_i, s_f, d_f, trajectory->time_horizon);
+
 #endif
 
 
@@ -453,11 +500,11 @@ int main() {
 
             motion->getMotion(next_x_vals, next_y_vals);
 
-            print_vector(next_x_vals, "next_x_vals-", 10);
-            print_vector(next_y_vals, "next_y_vals-", 10);
+            //print_vector(next_x_vals, "next_x_vals-", 10);
+            //print_vector(next_y_vals, "next_y_vals-", 10);
 
-            print_vector(next_x_vals, "next_x_vals", -10);
-            print_vector(next_y_vals, "ext_y_vals", -10);
+            //print_vector(next_x_vals, "next_x_vals", -10);
+            //print_vector(next_y_vals, "next_y_vals", -10);
 
             count_i++;
 

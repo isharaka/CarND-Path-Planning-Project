@@ -20,7 +20,7 @@ void print_vector(vector<double>& vec, const string& name, int b, int e);
 #define N_TRAJECTORY_WAYPOINTS  3
 
 Motion::Motion():
-    s_i(3), d_i(3), x_i(3), y_i(3), s_i_(3), d_i_(3), x_i_(3), y_i_(3)
+    s_i(3), d_i(3), x_i(3), y_i(3), s_i_(3), d_i_(3), x_i_(3), y_i_(3), _previous_s_i(3), _previous_d_i(3)
 {
 
 }
@@ -68,7 +68,12 @@ void Motion::telemetry(
         _end_path_d = car_d;
     }
 
+    _previous_s_i = s_i;
+    _previous_d_i = d_i;
+
     _path_overlap = std::min((int)PREVIOUS_PATH_OVERLAP, prev_size);
+
+    print_vector(_previous_path_s, "_previous_path_s", PREVIOUS_PATH_OVERLAP-5, PREVIOUS_PATH_OVERLAP+5);
 
     calculateDerivatives(track);
 
@@ -102,7 +107,7 @@ void Motion::generateMotion(Trajectory * trajectory, Map * track)
         double next_wp_d = trajectory->d(t);
 
         vector<double> next_wp = track->getXY(next_wp_s, next_wp_d);
-        cout <<"t:" << t << " ";
+        //cout <<"t:" << t << " ";
 
         ptss.push_back(next_wp_s);
         ptsd.push_back(next_wp_d);
@@ -115,8 +120,8 @@ void Motion::generateMotion(Trajectory * trajectory, Map * track)
 
     print_vector(ptss, "ptss");
     print_vector(ptsd, "ptsd");
-    print_vector(ptsx, "ptsx");
-    print_vector(ptsy, "ptsy");
+    //print_vector(ptsx, "ptsx");
+    //print_vector(ptsy, "ptsy");
 
 
     tk::spline splinex;
@@ -152,6 +157,10 @@ void Motion::generateMotion(Trajectory * trajectory, Map * track)
         _next_x_vals.push_back(x_point);
         _next_y_vals.push_back(y_point);
     }
+
+    print_vector(_next_s_vals, " _next_s_vals-", 10);
+    print_vector(_next_s_vals, "-_next_s_vals-", _path_overlap-5, _path_overlap+5);
+    print_vector(_next_s_vals, "-_next_s_vals ", -10);
 
 
 }
@@ -357,4 +366,14 @@ double Motion::calculateDerivatives(Map * track)
         d_i[2] = (d_i[1] - d_i_[1]) / DT_MOTION;
 
     }
+}
+
+double Motion::getPreviousPathTravelTime()
+{
+    return (_path_overlap < 3) ? 0 : ((N_POINTS_MOTION - _previous_path_s.size()) * DT_MOTION);
+}
+
+double Motion::getPreviousPathOverlapTime()
+{
+    return (_path_overlap < 3) ? 0 : (_path_overlap * DT_MOTION);
 }
