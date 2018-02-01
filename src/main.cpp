@@ -445,6 +445,7 @@ int main() {
                   lead_car_s[1] = predictions[i][0][1];
 
                   too_close = true;
+                  lane = 0;
                 }
               }
             }

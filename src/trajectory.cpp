@@ -14,7 +14,7 @@ using Eigen::VectorXd;
 
 using namespace std;
 
-const double Trajectory::time_horizon = 2.0;
+const double Trajectory::time_horizon = 3.0;
 
 Trajectory::Trajectory()
 {
