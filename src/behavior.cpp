@@ -29,17 +29,13 @@ struct ahead
     }
 }; 
 
-
-struct Behavior::target Behavior::generateBehavior(Car& ego, map<int, Car>& cars, Map * track)
+void Behavior::updateTraffic(Car& ego, map<int, Car>& cars, Map * track)
 {
-    bool too_close = false;  
-    int ego_lane = track->getLane(ego._d_predicted[0]); 
     double ego_predicted_s = ego._s_predicted[0];
-    double ego_s = ego._s[0];    
-
-    _traffic[0].clear(); 
-    _traffic[1].clear();
-    _traffic[2].clear();
+    double ego_s = ego._s[0];   
+    
+    for (int i = 0; i < _traffic.size(); ++i)
+        _traffic[i].clear(); 
 
 
     for (std::map<int,Car>::iterator it=cars.begin(); it!=cars.end(); ++it) {
@@ -87,21 +83,19 @@ struct Behavior::target Behavior::generateBehavior(Car& ego, map<int, Car>& cars
             cout << ' ' << _traffic[i][j]._id << ':' << _traffic[i][j]._s_predicted[0];
         }
         cout << endl;
-
-
     }
 
-    // for (std::map<int,Car>::iterator it=cars.begin(); it!=cars.end(); ++it) {
-    //     Car car = it->second;
+}
 
-    //     if (car._d_predicted[0] < track->getD(ego_lane) + 2 && car._d_predicted[0] > track->getD(ego_lane) - 2) {
-    //         double car_predicted_s = car._s_predicted[0];
 
-    //         if (car_predicted_s > ego_predicted_s && (car_predicted_s- ego_predicted_s) < 30) {
-    //             too_close = true;
-    //         }
-    //     }
-    // }
+struct Behavior::target Behavior::generateBehavior(Car& ego, map<int, Car>& cars, Map * track)
+{
+    bool too_close = false;  
+    int ego_lane = track->getLane(ego._d_predicted[0]); 
+    double ego_predicted_s = ego._s_predicted[0];
+
+    updateTraffic(ego, cars, track);
+    
 
     if (_traffic[ego_lane].size() > 0) {
         if (_traffic[ego_lane][0]._s_predicted[0] - ego_predicted_s < 30) {

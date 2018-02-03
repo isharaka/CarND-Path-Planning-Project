@@ -29,4 +29,6 @@ private:
     enum state _state;
 
     vector<vector<Car>> _traffic;
+
+    void updateTraffic(Car& ego, map<int, Car>& cars, Map * track);
 };
