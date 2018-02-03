@@ -192,20 +192,31 @@ vector<double> Map::getXY(double s, double d, bool fine, bool localize)
 }
 
 
-vector<double> Map::getDxDy(double s)
+vector<double> Map::getDxDy(double s, bool fine, bool localize)
 {
-    vector<double> dxdy = {_splines->dx(s), _splines->dy(s)};
-    double magnitude = sqrt(dxdy[0]*dxdy[0] + dxdy[1]*dxdy[1]);
+    while (s >= max_s)
+        s -= max_s;
 
-    dxdy[0] /= magnitude;
-    dxdy[1] /= magnitude;
+    if (fine) {
+        if (localize)
+            setLocality(s);
 
-    return dxdy;
+        vector<double> dxdy = {_splines->dx(s), _splines->dy(s)};
+        double magnitude = sqrt(dxdy[0]*dxdy[0] + dxdy[1]*dxdy[1]);
+
+        dxdy[0] /= magnitude;
+        dxdy[1] /= magnitude;
+
+        return dxdy;
+    } else {
+        int next_wp = NextWaypoint(s, _map_waypoints_s);
+        return {_map_waypoints_dx[next_wp], _map_waypoints_dy[next_wp]};
+    }
 }
 
-vector<double> Map::getSxSy(double s)
+vector<double> Map::getSxSy(double s, bool fine, bool localize)
 {
-    vector<double> dxdy = getDxDy(s);
+    vector<double> dxdy = getDxDy(s, fine, localize);
     return {-dxdy[1], dxdy[0]};
 }
 

@@ -33,8 +33,8 @@ public:
     vector<double> getFrenet(double x, double y, double theta, bool fine = false, bool localize = false);
     vector<double> getXY(double s, double d, bool fine = false, bool localize = false);
 
-    vector<double> getDxDy(double s);
-    vector<double> getSxSy(double s);
+    vector<double> getDxDy(double s, bool fine = false, bool localize = false);
+    vector<double> getSxSy(double s, bool fine = false, bool localize = false);
 
     double getD(int lane);
     int getLane(double d);
