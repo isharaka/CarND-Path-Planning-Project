@@ -23,6 +23,8 @@ public:
 
     static const double max_s;
     static const double lane_width;
+    static const int leftmost_lane;
+    static const int rightmost_lane;
   
     double distance(double x1, double y1, double x2, double y2);
 

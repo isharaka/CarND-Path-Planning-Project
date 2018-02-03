@@ -14,6 +14,8 @@ using namespace std;
 
 const double Map::max_s = 6945.55405474;
 const double Map::lane_width = 4.0;
+const int Map::leftmost_lane = 0;
+const int Map::rightmost_lane = 2;
 
 constexpr double pi() { return M_PI; }
 
