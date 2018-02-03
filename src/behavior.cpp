@@ -33,7 +33,7 @@ void Behavior::updateTraffic(Car& ego, map<int, Car>& cars, Map * track)
 {
     double ego_predicted_s = ego._s_predicted[0];
     double ego_s = ego._s[0];   
-    
+
     for (int i = 0; i < _traffic.size(); ++i)
         _traffic[i].clear(); 
 
@@ -87,6 +87,37 @@ void Behavior::updateTraffic(Car& ego, map<int, Car>& cars, Map * track)
 
 }
 
+// vector<double> Behavior::getKinematics(Car& ego, int lane) {
+//     /* 
+//     Gets next timestep kinematics (position, velocity, acceleration) 
+//     for a given lane. Tries to choose the maximum velocity and acceleration, 
+//     given other vehicle positions and accel/velocity constraints.
+//     */
+//     double max_velocity_accel_limit = this->max_acceleration + this->v;
+//     double new_position;
+//     double new_velocity;
+//     double new_accel;
+//     Vehicle vehicle_ahead;
+//     Vehicle vehicle_behind;
+
+//     if (get_vehicle_ahead(predictions, lane, vehicle_ahead)) {
+
+//         if (get_vehicle_behind(predictions, lane, vehicle_behind)) {
+//             new_velocity = vehicle_ahead.v; //must travel at the speed of traffic, regardless of preferred buffer
+//         } else {
+//             float max_velocity_in_front = (vehicle_ahead.s - this->s - this->preferred_buffer) + vehicle_ahead.v - 0.5 * (this->a);
+//             new_velocity = min(min(max_velocity_in_front, max_velocity_accel_limit), this->target_speed);
+//         }
+//     } else {
+//         new_velocity = min(max_velocity_accel_limit, this->target_speed);
+//     }
+    
+//     new_accel = new_velocity - this->v; //Equation: (v_1 - v_0)/t = acceleration
+//     new_position = this->s + new_velocity + new_accel / 2.0;
+//     return{new_position, new_velocity, new_accel};
+    
+// }
+
 
 struct Behavior::target Behavior::generateBehavior(Car& ego, map<int, Car>& cars, Map * track)
 {
@@ -95,20 +126,27 @@ struct Behavior::target Behavior::generateBehavior(Car& ego, map<int, Car>& cars
     double ego_predicted_s = ego._s_predicted[0];
 
     updateTraffic(ego, cars, track);
+
+    double intended_speed;
     
 
     if (_traffic[ego_lane].size() > 0) {
         if (_traffic[ego_lane][0]._s_predicted[0] - ego_predicted_s < 30) {
             too_close = true;
             cout << "too close " << endl;
+            intended_speed = _traffic[ego_lane][0]._s_predicted[1];
+        } else {
+            intended_speed = 20.0;
         }
+    } else {
+        intended_speed = 20.0;
     }
 
 
     if (too_close) {
         if (_target.speed > 5)
         _target.speed -= 1;
-    } else if (_target.speed < 20) {
+    } else if (_target.speed < intended_speed) {
         _target.speed += 1;
     }
 
