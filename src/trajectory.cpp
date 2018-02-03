@@ -33,6 +33,30 @@ vector<double> Trajectory::d(double t)
     return {polyeval(_d_coeff, t), 0, 0};
 }
 
+void Trajectory::generateTrajectory(vector<double>& s_i, vector<double>& d_i, struct Behavior::target& target_behavior, Map * track)
+{
+#if 0
+        vector<double> s_f = { s_i[0] + target_behavior.speed * time_horizon, target_behavior.speed, 0};
+        vector<double> d_f = { track->getD(target_behavior.lane), 0, 0};
+
+        generateCVTrajectory(s_i, d_i, s_f, d_f, time_horizon);
+#else
+        vector<double> s_f = { s_i[0] + (s_i[1] + target_behavior.speed) * time_horizon / 2, target_behavior.speed, 0};
+        vector<double> d_f = { track->getD(target_behavior.lane), 0, 0};
+
+        print_vector(s_i, "s_i");
+        print_vector(s_f, "s_f");
+        print_vector(d_i, "d_i");
+        print_vector(d_f, "d_f");
+
+        //print_vector(x_i, "x_i");
+        //print_vector(y_i, "y_i");
+
+        generateJMTrajectory(s_i, d_i, s_f, d_f, time_horizon);
+
+#endif   
+}
+
 
 void Trajectory::generateCVTrajectory(vector<double>& s_i, vector<double>& d_i, vector<double>& s_f, vector<double>& d_f, double duration)
 {

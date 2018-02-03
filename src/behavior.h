@@ -1,6 +1,9 @@
+
+#ifndef _BEHAVIOR_
+#define _BEHAVIOR_
+
 #include <vector>
 #include <string>
-#include "prediction.h"
 #include "map.h"
 #include "car.h"
 
@@ -43,3 +46,5 @@ private:
 
     static const string _state_names[NUM_STATES];
 };
+
+#endif

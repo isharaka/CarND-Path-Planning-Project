@@ -1,6 +1,7 @@
 #include <vector>
 
 #include "prediction.h"
+#include "trajectory.h"
 
 void print_vector(vector<double>& vec, const string& name, int n=0);
 void print_vector(vector<double>& vec, const string& name, int b, int e);

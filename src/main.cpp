@@ -377,21 +377,18 @@ int main() {
 
             std::cout << "v:" << car_speed << " x:" << car_x << " y:" << car_y << " yaw:" << car_yaw  << " s:" << car_s << " d:" << car_d << " prev size:" << previous_path_x.size() << std::endl << std::endl;
 
+            // SETUP TRACK
             track->setLocality(car_s);
 
             // MOTION & TELEMETRY
             motion->telemetry(track, car_x, car_y, car_s, car_d, deg2rad(car_yaw), car_speed, previous_path_x, previous_path_y, end_path_s, end_path_d);
 
-            vector<double> x_i = motion->getInitX();
-            vector<double> y_i = motion->getInitY();
             vector<double> s_i = motion->getInitS();
             vector<double> d_i = motion->getInitD();
-
 
             //cout << "travel t:" << motion->getPreviousPathTravelTime() << " overlap:" << motion->getPreviousPathOverlapTime() <<
             //  " pre init s:" << motion->getPreviousInitS()[0] << " pre init d:" << motion->getPreviousInitD()[0] << 
             //  " pre s(0):" << trajectory->s(0)[0] << " pre s dot(0):" << trajectory->s(0)[1]  << endl;
-
 
             // PREDICTION
             double prediction_horizon_ego = motion->getPreviousPathTravelTime() + trajectory->time_horizon;
@@ -400,35 +397,11 @@ int main() {
             Car ego = prediction->predict(track, prediction_horizon_env, motion->getS(), motion->getD(), trajectory, prediction_horizon_ego);
             map<int, Car> cars = prediction->predict(track, prediction_horizon_env, sensor_fusion); 
            
-
             // BEHAVIOR PLANNINGS
             struct Behavior::target target_behavior = behavior->generateBehavior(ego, cars, track, prediction_horizon_env);
 
-
             // TRAJECTORY GENERATION
-
-#if 0
-            vector<double> s_f(3), d_f(3);
-            s_f[0] = s_i[0] + target_behavior.speed * trajectory->time_horizon;
-            d_f[0] = 2 + 4*target_behavior.lane;
-
-            trajectory->generateCVTrajectory(s_i, d_i, s_f, d_f, trajectory->time_horizon);
-#else
-            vector<double> s_f = { s_i[0] + (s_i[1] + target_behavior.speed) * trajectory->time_horizon / 2, target_behavior.speed, 0};
-            vector<double> d_f = { track->getD(target_behavior.lane), 0, 0};
-
-            print_vector(s_i, "s_i");
-            print_vector(s_f, "s_f");
-            print_vector(d_i, "d_i");
-            print_vector(d_f, "d_f");
-
-            //print_vector(x_i, "x_i");
-            //print_vector(y_i, "y_i");
-
-            trajectory->generateJMTrajectory(s_i, d_i, s_f, d_f, trajectory->time_horizon);
-
-#endif
-
+            trajectory->generateTrajectory(s_i, d_i, target_behavior, track);
 
             // MOTION GENERATION
 #if 1
@@ -442,12 +415,6 @@ int main() {
 
             motion->getMotion(next_x_vals, next_y_vals);
 
-            //print_vector(next_x_vals, "next_x_vals-", 10);
-            //print_vector(next_y_vals, "next_y_vals-", 10);
-
-            //print_vector(next_x_vals, "next_x_vals", -10);
-            //print_vector(next_y_vals, "next_y_vals", -10);
-
             count_i++;
 
             //if (count_i >= 2)
@@ -456,7 +423,6 @@ int main() {
             std::cout << std::endl;
 
             json msgJson;
-
 
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           	msgJson["next_x"] = next_x_vals;
