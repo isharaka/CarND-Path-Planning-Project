@@ -15,7 +15,7 @@ public:
     Prediction();
 
     map<int, Car> predict(Map * track, double duration, vector<vector<double>>& sensor_fusion);
-    Car predict(Map * track, double duration, vector<double> s, vector<double> d, Trajectory * trajectory);
+    Car predict(Map * track, double duration, vector<double> s, vector<double> d, Trajectory * trajectory, double t);
 
 private:  
 };

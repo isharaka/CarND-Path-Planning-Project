@@ -35,7 +35,7 @@ map<int, Car> Prediction::predict(Map * track, double duration, vector<vector<do
         d_prediction[0] = d;
         d_prediction[1] = vx*dxdy[0] + vy*dxdy[1];
 
-        Car car(sensor_fusion[i][0], {sensor_fusion[i][5],0,0}, {sensor_fusion[i][6],0,0}, s_prediction, d_prediction);
+        Car car(sensor_fusion[i][0], {sensor_fusion[i][5],0,0}, {sensor_fusion[i][6],0,0}, duration, s_prediction, d_prediction);
         cars[car._id] = car;
 
         // cout << "car id:" << cars[car._id]._id << " s dot:" << vx*sxsy[0] + vy*sxsy[1] <<endl;
@@ -46,8 +46,8 @@ map<int, Car> Prediction::predict(Map * track, double duration, vector<vector<do
     return cars;
 }
 
-Car Prediction::predict(Map * track, double duration, vector<double> s, vector<double> d, Trajectory* trajectory)
+Car Prediction::predict(Map * track, double duration, vector<double> s, vector<double> d, Trajectory* trajectory, double t)
 {
-   return Car(-1, s, d, trajectory->s(duration), trajectory->d(duration)); 
+   return Car(-1, s, d, duration, trajectory->s(t), trajectory->d(t)); 
 }
 
