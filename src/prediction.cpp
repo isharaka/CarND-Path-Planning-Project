@@ -11,24 +11,6 @@ Prediction::Prediction()
 
 }
 
-void Prediction::telemetry(
-        Map * track,
-        double car_x,
-        double car_y,
-        double car_s,
-        double car_d,
-        double car_yaw,
-        double car_speed,
-        vector<double> previous_path_x,
-        vector<double> previous_path_y,
-        double end_path_s,
-        double end_path_d,
-        vector<vector<double>> sensor_fusion
-    )
-{
-    _sensor_fusion = sensor_fusion;
-}
-
 /*vector<vector<vector<double>>> Prediction::predict(double duration)
 {
     _s_predictions.clear();
@@ -67,16 +49,16 @@ void Prediction::telemetry(
     return predictions;
 }*/
 
-map<int, Car> Prediction::predict(double duration)
+map<int, Car> Prediction::predict(double duration, vector<vector<double>>& sensor_fusion)
 {
     map<int, Car> cars;
 
-    for (int i=0; i < _sensor_fusion.size(); i++) {
+    for (int i=0; i < sensor_fusion.size(); i++) {
 
-        double vx = _sensor_fusion[i][3];
-        double vy = _sensor_fusion[i][4];
-        double s = _sensor_fusion[i][5];
-        double d = _sensor_fusion[i][6];
+        double vx = sensor_fusion[i][3];
+        double vy = sensor_fusion[i][4];
+        double s = sensor_fusion[i][5];
+        double d = sensor_fusion[i][6];
 
         vector<double> s_prediction(3);
 
@@ -87,7 +69,7 @@ map<int, Car> Prediction::predict(double duration)
 
         d_prediction[0] = d;
 
-        Car car(_sensor_fusion[i][0], {_sensor_fusion[i][5],0,0}, {_sensor_fusion[i][6],0,0}, s_prediction, d_prediction);
+        Car car(sensor_fusion[i][0], {sensor_fusion[i][5],0,0}, {sensor_fusion[i][6],0,0}, s_prediction, d_prediction);
         cars[car._id] = car;
 
         //cout << "car id:" << cars[car._id]._id << " ";

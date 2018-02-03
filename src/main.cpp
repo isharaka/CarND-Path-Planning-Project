@@ -379,7 +379,6 @@ int main() {
 
 
             motion->telemetry(track, car_x, car_y, car_s, car_d, deg2rad(car_yaw), car_speed, previous_path_x, previous_path_y, end_path_s, end_path_d);
-            prediction->telemetry(track, car_x, car_y, car_s, car_d, deg2rad(car_yaw), car_speed, previous_path_x, previous_path_y, end_path_s, end_path_d, sensor_fusion);
 
             vector<double> x_i = motion->getInitX();
             vector<double> y_i = motion->getInitY();
@@ -392,11 +391,11 @@ int main() {
               " pre s(0):" << trajectory->s(0)[0] << " pre s dot(0):" << trajectory->s(0)[1]  << endl;
 
 
-            double prediction_horizon = motion->getPreviousPathTravelTime() + trajectory->time_horizon;
-            Car ego = Car(-1, motion->getS(), motion->getD(), trajectory->s(prediction_horizon), trajectory->d(prediction_horizon));
+            double prediction_horizon_ego = motion->getPreviousPathTravelTime() + trajectory->time_horizon;
+            Car ego = Car(-1, motion->getS(), motion->getD(), trajectory->s(prediction_horizon_ego), trajectory->d(prediction_horizon_ego));
 
-            map<int, Car> cars = prediction->predict(motion->getPreviousPathOverlapTime() + trajectory->time_horizon);  
-
+            double prediction_horizon_env = motion->getPreviousPathOverlapTime() + trajectory->time_horizon;
+            map<int, Car> cars = prediction->predict(prediction_horizon_env, sensor_fusion); 
            
             struct Behavior::target target_behavior = behavior->generateBehavior(ego, cars, track);
 
