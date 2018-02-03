@@ -395,10 +395,10 @@ int main() {
 
             // PREDICTION
             double prediction_horizon_ego = motion->getPreviousPathTravelTime() + trajectory->time_horizon;
-            Car ego = prediction->predict(prediction_horizon_ego, motion->getS(), motion->getD(), trajectory);
+            Car ego = prediction->predict(track, prediction_horizon_ego, motion->getS(), motion->getD(), trajectory);
 
             double prediction_horizon_env = motion->getPreviousPathOverlapTime() + trajectory->time_horizon;
-            map<int, Car> cars = prediction->predict(prediction_horizon_env, sensor_fusion); 
+            map<int, Car> cars = prediction->predict(track, prediction_horizon_env, sensor_fusion); 
            
 
             // BEHAVIOR PLANNINGS
