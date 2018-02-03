@@ -13,6 +13,7 @@
 using namespace std;
 
 const double Map::max_s = 6945.55405474;
+const double Map::lane_width = 4.0;
 
 constexpr double pi() { return M_PI; }
 
@@ -121,6 +122,23 @@ void Map::setLocality(int next_wp)
         local_waypoints_dy.push_back(_splines->dy(s));
     }
 }
+
+
+double Map::getD(int lane)
+{
+    return lane*lane_width + lane_width/2;
+}
+
+int Map::getLane(double d)
+{
+    double _d = d/lane_width;
+    double lane;
+
+    modf(_d, &lane);
+
+    return static_cast<int>(lane);
+}
+
 
 void Map::setLocality(double x, double y, double theta)
 {

@@ -228,7 +228,7 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 
 
 
-  int lane = 1;
+  int ref_lane = 1;
   double ref_vel = 20; 
   Map * track;
   Trajectory * trajectory;
@@ -389,23 +389,21 @@ int main() {
               " pre init s:" << motion->getPreviousInitS()[0] << " pre init d:" << motion->getPreviousInitD()[0] << 
               " pre s(0):" << trajectory->s(0)[0] << " pre s dot(0):" << trajectory->s(0)[1]  << endl;
 
-            vector<double> predicted_ego_s(3);
-            vector<double> predicted_ego_d(3);
-            bool too_close = false;
 
-            predicted_ego_s = trajectory->s(motion->getPreviousPathTravelTime() + trajectory->time_horizon);
-            predicted_ego_d = trajectory->d(motion->getPreviousPathTravelTime() + trajectory->time_horizon);
+            double prediction_horizon = motion->getPreviousPathTravelTime() + trajectory->time_horizon;
+            Car ego = Car(-1, motion->getS(), motion->getD(), trajectory->s(prediction_horizon), trajectory->d(prediction_horizon));
 
-
-            map<int, Car> cars = prediction->predict(motion->getPreviousPathOverlapTime() + trajectory->time_horizon);
+            map<int, Car> cars = prediction->predict(motion->getPreviousPathOverlapTime() + trajectory->time_horizon);  
             
+            bool too_close = false;          
 
             for (std::map<int,Car>::iterator it=cars.begin(); it!=cars.end(); ++it) {
               Car car = it->second;
+              int lane = track->getLane(ego._d_predicted[0]);
 
-              if (car._d[0] < (2+4*lane+2) && car._d[0] > (2+4*lane-2)) {
+              if (car._d_predicted[0] < track->getD(lane) + 2 && car._d_predicted[0] > track->getD(lane) - 2) {
 
-                if (car._s_predicted[0] > predicted_ego_s[0] && (car._s_predicted[0] - predicted_ego_s[0]) < 30) {
+                if (car._s_predicted[0] > ego._s_predicted[0] && (car._s_predicted[0] - ego._s_predicted[0]) < 30) {
 
                   too_close = true;
                 }
@@ -423,11 +421,11 @@ int main() {
 
 #if 0
             s_f[0] = s_i[0] + ref_vel * trajectory->time_horizon;
-            d_f[0] = 2 + 4*lane;
+            d_f[0] = 2 + 4*ref_lane;
 
             trajectory->generateCVTrajectory(s_i, d_i, s_f, d_f, trajectory->time_horizon);
 #else
-            d_f[0] = 2 + 4*lane;
+            d_f[0] = 2 + 4*ref_lane;
             d_f[1] = 0;
             d_f[2] = 0;
 

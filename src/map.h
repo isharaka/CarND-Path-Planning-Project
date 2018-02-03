@@ -22,6 +22,7 @@ public:
 	Map();
 
     static const double max_s;
+    static const double lane_width;
   
     double distance(double x1, double y1, double x2, double y2);
 
@@ -34,6 +35,9 @@ public:
 
     vector<double> getDxDy(double s);
     vector<double> getSxSy(double s);
+
+    double getD(int lane);
+    int getLane(double d);
 
 
 private:

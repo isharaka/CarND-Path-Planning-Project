@@ -29,6 +29,9 @@ public:
 
     void getMotion(vector<double>& next_x_vals, vector<double>& next_y_vals);
 
+    vector<double> getS() {return {_car_s, _car_speed, 0};}
+    vector<double> getD() {return {_car_d, 0, 0};}
+
     vector<double> getInitS() { return s_i;}
     vector<double> getInitD() { return d_i;}
     vector<double> getInitX() { return x_i;}

@@ -7,7 +7,7 @@ add_definitions(-std=c++11)
 set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 
-set(sources src/main.cpp src/map.cpp src/trajectory.cpp src/motion.cpp src/prediction.cpp)
+set(sources src/main.cpp src/map.cpp src/trajectory.cpp src/motion.cpp src/prediction.cpp src/behavior.cpp src/car.cpp)
 
 include_directories(src/Eigen-3.3)
 include_directories(src/LBFGSpp)
