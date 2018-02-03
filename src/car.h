@@ -14,7 +14,7 @@ class Car
         Car(const Car& other);
         Car(int id, vector<double> s, vector<double> d, vector<double> s_predicted, vector<double> d_predicted);
 
-        Car& operator=(Car& other);
+        Car& operator=(const Car& other);
 
         int _id;
         vector<double> _s;

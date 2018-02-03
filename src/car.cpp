@@ -29,7 +29,7 @@ Car::Car(const Car& other)
     _d_predicted = other._d_predicted;
 }
 
-Car& Car::operator=(Car& other)
+Car& Car::operator=(const Car& other)
 {
     if(&other == this)
         return *this;
