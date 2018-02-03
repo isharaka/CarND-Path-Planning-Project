@@ -377,6 +377,8 @@ int main() {
 
             std::cout << "v:" << car_speed << " x:" << car_x << " y:" << car_y << " yaw:" << car_yaw  << " s:" << car_s << " d:" << car_d << " prev size:" << previous_path_x.size() << std::endl << std::endl;
 
+            track->setLocality(car_s);
+
             // MOTION & TELEMETRY
             motion->telemetry(track, car_x, car_y, car_s, car_d, deg2rad(car_yaw), car_speed, previous_path_x, previous_path_y, end_path_s, end_path_d);
 

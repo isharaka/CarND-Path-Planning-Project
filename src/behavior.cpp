@@ -13,8 +13,13 @@ struct Behavior::target Behavior::generateBehavior(Car& ego, map<int, Car>& cars
         Car car = it->second;
 
         if (car._d_predicted[0] < track->getD(lane) + 2 && car._d_predicted[0] > track->getD(lane) - 2) {
+            double ego_s = ego._s_predicted[0];
+            double lead_s = car._s_predicted[0];
 
-            if (car._s_predicted[0] > ego._s_predicted[0] && (car._s_predicted[0] - ego._s_predicted[0]) < 30) {
+            if (ego_s > (lead_s + 0.5*track->max_s))
+                lead_s += track->max_s;
+
+            if (lead_s > ego_s && (lead_s- ego_s) < 30) {
                 too_close = true;
             }
         }
