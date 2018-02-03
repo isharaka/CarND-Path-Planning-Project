@@ -9,7 +9,7 @@ public:
 
     struct target {
         int lane;
-        int speed;
+        double speed;
     };
 
     struct target generateBehavior(Car& ego, map<int, Car>& cars, Map * track);

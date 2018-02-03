@@ -11,44 +11,6 @@ Prediction::Prediction()
 
 }
 
-/*vector<vector<vector<double>>> Prediction::predict(double duration)
-{
-    _s_predictions.clear();
-    _d_predictions.clear();
-
-    vector<vector<vector<double>>> predictions;
-
-    for (int i=0; i < _sensor_fusion.size(); i++) {
-
-        double vx = _sensor_fusion[i][3];
-        double vy = _sensor_fusion[i][4];
-        double s = _sensor_fusion[i][5];
-        double d = _sensor_fusion[i][6];
-
-        vector<double> s_prediction(3);
-
-        s_prediction[1] = sqrt(vx*vx + vy*vy);
-        s_prediction[0] = s + s_prediction[1] * duration;
-
-        _s_predictions.push_back(s_prediction);
-
-        vector<double> d_prediction(3);
-
-        d_prediction[0] = d;
-
-        _d_predictions.push_back(d_prediction);
-
-        vector<vector<double>> prediction;
-
-        prediction.push_back(s_prediction);
-        prediction.push_back(d_prediction);
-
-        predictions.push_back(prediction);
-    }
-
-    return predictions;
-}*/
-
 map<int, Car> Prediction::predict(double duration, vector<vector<double>>& sensor_fusion)
 {
     map<int, Car> cars;
@@ -77,5 +39,10 @@ map<int, Car> Prediction::predict(double duration, vector<vector<double>>& senso
     }
 
     return cars;
+}
+
+Car Prediction::predict(double duration, vector<double> s, vector<double> d, Trajectory* trajectory)
+{
+   return Car(-1, s, d, trajectory->s(duration), trajectory->d(duration)); 
 }
 

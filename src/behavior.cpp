@@ -1,6 +1,6 @@
 #include "behavior.h"
 
-Behavior::Behavior():_target{1,20}
+Behavior::Behavior():_target{1,20.0}
 {}
 
 

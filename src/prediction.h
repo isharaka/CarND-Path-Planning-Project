@@ -5,6 +5,7 @@
 
 #include "map.h"
 #include "car.h"
+#include "trajectory.h"
 
 using namespace std;
 
@@ -13,12 +14,10 @@ class Prediction
 public:
     Prediction();
 
-    //vector<vector<vector<double>>> predict(double duration);
     map<int, Car> predict(double duration, vector<vector<double>>& sensor_fusion);
+    Car predict(double duration, vector<double> s, vector<double> d, Trajectory * trajectory);
 
-
-private:
-    vector<vector<double>> _sensor_fusion;     
+private:  
 };
 
 #endif
