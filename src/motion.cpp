@@ -73,7 +73,7 @@ void Motion::telemetry(
 
     _path_overlap = std::min((int)PREVIOUS_PATH_OVERLAP, prev_size);
 
-    print_vector(_previous_path_s, "_previous_path_s", PREVIOUS_PATH_OVERLAP-5, PREVIOUS_PATH_OVERLAP+5);
+    //print_vector(_previous_path_s, "_previous_path_s", PREVIOUS_PATH_OVERLAP-5, PREVIOUS_PATH_OVERLAP+5);
 
     calculateDerivatives(track);
 

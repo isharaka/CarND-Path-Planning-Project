@@ -34,8 +34,9 @@ map<int, Car> Prediction::predict(double duration, vector<vector<double>>& senso
         Car car(sensor_fusion[i][0], {sensor_fusion[i][5],0,0}, {sensor_fusion[i][6],0,0}, s_prediction, d_prediction);
         cars[car._id] = car;
 
-        //cout << "car id:" << cars[car._id]._id << " ";
+        //cout << "car id:" << cars[car._id]._id << endl;
         //print_vector(cars[car._id]._s_predicted, "car s");
+        //print_vector(cars[car._id]._d_predicted, "car d");
     }
 
     return cars;
