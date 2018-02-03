@@ -33,7 +33,7 @@ struct ahead
 struct Behavior::target Behavior::generateBehavior(Car& ego, map<int, Car>& cars, Map * track)
 {
     bool too_close = false;  
-    int lane = track->getLane(ego._d_predicted[0]); 
+    int ego_lane = track->getLane(ego._d_predicted[0]); 
     double ego_predicted_s = ego._s_predicted[0];
     double ego_s = ego._s[0];    
 
@@ -69,12 +69,12 @@ struct Behavior::target Behavior::generateBehavior(Car& ego, map<int, Car>& cars
         std::sort(_traffic[i].begin(), _traffic[i].end(), less_than_key());
         int n_cars_ahead = count_if (_traffic[i].begin(), _traffic[i].end(), ahead(ego_predicted_s));
 
-        cout << _traffic[i].size() << ' ' << n_cars_ahead << ' ';
+        // cout << _traffic[i].size() << ' ' << n_cars_ahead << ' ';
 
-        for (int j = 0; j < _traffic[i].size(); ++j) {
-            cout << ' ' << _traffic[i][j]._id << ':' << _traffic[i][j]._s_predicted[0];
-        }
-        cout << endl;
+        // for (int j = 0; j < _traffic[i].size(); ++j) {
+        //     cout << ' ' << _traffic[i][j]._id << ':' << _traffic[i][j]._s_predicted[0];
+        // }
+        // cout << endl;
 
         if (n_cars_ahead > 1)
             _traffic[i].erase(_traffic[i].begin(), _traffic[i].begin() + n_cars_ahead - 1);
@@ -91,17 +91,25 @@ struct Behavior::target Behavior::generateBehavior(Car& ego, map<int, Car>& cars
 
     }
 
-    for (std::map<int,Car>::iterator it=cars.begin(); it!=cars.end(); ++it) {
-        Car car = it->second;
+    // for (std::map<int,Car>::iterator it=cars.begin(); it!=cars.end(); ++it) {
+    //     Car car = it->second;
 
-        if (car._d_predicted[0] < track->getD(lane) + 2 && car._d_predicted[0] > track->getD(lane) - 2) {
-            double car_predicted_s = car._s_predicted[0];
+    //     if (car._d_predicted[0] < track->getD(ego_lane) + 2 && car._d_predicted[0] > track->getD(ego_lane) - 2) {
+    //         double car_predicted_s = car._s_predicted[0];
 
-            if (car_predicted_s > ego_predicted_s && (car_predicted_s- ego_predicted_s) < 30) {
-                too_close = true;
-            }
+    //         if (car_predicted_s > ego_predicted_s && (car_predicted_s- ego_predicted_s) < 30) {
+    //             too_close = true;
+    //         }
+    //     }
+    // }
+
+    if (_traffic[ego_lane].size() > 0) {
+        if (_traffic[ego_lane][0]._s_predicted[0] - ego_predicted_s < 30) {
+            too_close = true;
+            cout << "too close " << endl;
         }
     }
+
 
     if (too_close) {
         if (_target.speed > 5)
