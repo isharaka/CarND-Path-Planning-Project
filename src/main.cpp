@@ -373,7 +373,7 @@ int main() {
           	// Sensor Fusion Data, a list of all other cars on the same side of the road.
           	vector<vector<double>> sensor_fusion = j[1]["sensor_fusion"];
 
-            std::cout << "v:" << car_speed << " x:" << car_x << " y:" << car_y << " yaw:" << car_yaw  << " s:" << car_s << " d:" << car_d << " prev size:" << previous_path_x.size() << std::endl;
+            std::cout << "v:" << car_speed << " x:" << car_x << " y:" << car_y << " yaw:" << car_yaw  << " s:" << car_s << " d:" << car_d << " prev size:" << previous_path_x.size() << std::endl << std::endl;
 
 
             motion->telemetry(track, car_x, car_y, car_s, car_d, deg2rad(car_yaw), car_speed, previous_path_x, previous_path_y, end_path_s, end_path_d);
@@ -385,78 +385,39 @@ int main() {
             vector<double> d_i = motion->getInitD();
 
 
-#if 0
-            int prev_size = previous_path_x.size();
-           
-            if (prev_size == 0) {
-              end_path_s = car_s;
-            }
-
-            bool too_close = false;
-
-            for (int i=0; i < sensor_fusion.size(); i++) {
-              float d = sensor_fusion[i][6];
-
-              if (d < (2+4*lane+2) && d > (2+4*lane-2)) {
-                double vx = sensor_fusion[i][3];
-                double vy = sensor_fusion[i][4];
-                double check_speed = sqrt(vx*vx + vy*vy);
-                double check_car_s = sensor_fusion[i][5];
-
-                check_car_s += (double)prev_size*0.02*check_speed;
-
-                if ((check_car_s > end_path_s) && ((check_car_s-end_path_s)<30)) {
-                  too_close = true;
-                }
-              }
-            }
-
-            if (too_close) {
-              ref_vel -= 0.1;
-            } else if (ref_vel < 22) {
-              ref_vel += 0.1;
-            }
-#else
-
             cout << "travel t:" << motion->getPreviousPathTravelTime() << " overlap:" << motion->getPreviousPathOverlapTime() <<
               " pre init s:" << motion->getPreviousInitS()[0] << " pre init d:" << motion->getPreviousInitD()[0] << 
               " pre s(0):" << trajectory->s(0)[0] << " pre s dot(0):" << trajectory->s(0)[1]  << endl;
 
-            vector<vector<vector<double>>> predictions = prediction->predict(motion->getPreviousPathOverlapTime() + trajectory->time_horizon);
-            
             vector<double> predicted_ego_s(3);
             vector<double> predicted_ego_d(3);
-
-            vector<double> lead_car_s(3);
-
             bool too_close = false;
 
             predicted_ego_s = trajectory->s(motion->getPreviousPathTravelTime() + trajectory->time_horizon);
             predicted_ego_d = trajectory->d(motion->getPreviousPathTravelTime() + trajectory->time_horizon);
 
-            for (int i=0; i < predictions.size(); i++) {
-              double d = predictions[i][1][0];
 
-              if (d < (2+4*lane+2) && d > (2+4*lane-2)) {
-                double other_car_s = predictions[i][0][0];
+            map<int, Car> cars = prediction->predict(motion->getPreviousPathOverlapTime() + trajectory->time_horizon);
+            
 
-                if (other_car_s > predicted_ego_s[0] && (other_car_s - predicted_ego_s[0]) < 30) {
-                  lead_car_s[0] = other_car_s;
-                  lead_car_s[1] = predictions[i][0][1];
+            for (std::map<int,Car>::iterator it=cars.begin(); it!=cars.end(); ++it) {
+              Car car = it->second;
+
+              if (car._d[0] < (2+4*lane+2) && car._d[0] > (2+4*lane-2)) {
+
+                if (car._s_predicted[0] > predicted_ego_s[0] && (car._s_predicted[0] - predicted_ego_s[0]) < 30) {
 
                   too_close = true;
-                  lane = 0;
                 }
               }
             }
 
             if (too_close) {
-              ref_vel -= 1;
+              if (ref_vel > 5)
+                ref_vel -= 1;
             } else if (ref_vel < 22) {
               ref_vel += 1;
             }
-
-#endif
 
             vector<double> s_f(3), d_f(3);
 
@@ -475,8 +436,8 @@ int main() {
             s_f[2] = 0;
 
             print_vector(s_i, "s_i");
-            print_vector(d_i, "d_i");
             print_vector(s_f, "s_f");
+            print_vector(d_i, "d_i");
             print_vector(d_f, "d_f");
 
             print_vector(x_i, "x_i");

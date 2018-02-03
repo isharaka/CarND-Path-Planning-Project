@@ -4,6 +4,22 @@
 
 using namespace std;
 
+class Car
+{
+    public:
+        Car();
+        Car(const Car& other);
+        Car(int id, vector<double> s, vector<double> d, vector<double> s_predicted, vector<double> d_predicted);
+
+        Car& operator=(Car& other);
+
+        int _id;
+        vector<double> _s;
+        vector<double> _d;
+        vector<double> _s_predicted;
+        vector<double> _d_predicted;
+};
+
 class Prediction
 {
 public:
@@ -24,14 +40,10 @@ public:
             vector<vector<double>> sensor_fusion
         );
 
-    vector<vector<double>> getSPredictions() { return _s_predictions;}
-    vector<vector<double>> getDPredictions() { return _d_predictions;}
-
-    vector<vector<vector<double>>> predict(double duration);
+    //vector<vector<vector<double>>> predict(double duration);
+    map<int, Car> predict(double duration);
 
 
 private:
-    vector<vector<double>> _s_predictions;
-    vector<vector<double>> _d_predictions;
     vector<vector<double>> _sensor_fusion;     
 };

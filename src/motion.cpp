@@ -116,8 +116,6 @@ void Motion::generateMotion(Trajectory * trajectory, Map * track)
         ptsy.push_back(next_wp[1]);
     }
 
-    cout << endl;
-
     print_vector(ptss, "ptss");
     print_vector(ptsd, "ptsd");
     //print_vector(ptsx, "ptsx");
