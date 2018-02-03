@@ -43,11 +43,11 @@ Map::Map()
         iss >> s;
         iss >> d_x;
         iss >> d_y;
-        map_waypoints_x.push_back(x);
-        map_waypoints_y.push_back(y);
-        map_waypoints_s.push_back(s);
-        map_waypoints_dx.push_back(d_x);
-        map_waypoints_dy.push_back(d_y);
+        _map_waypoints_x.push_back(x);
+        _map_waypoints_y.push_back(y);
+        _map_waypoints_s.push_back(s);
+        _map_waypoints_dx.push_back(d_x);
+        _map_waypoints_dy.push_back(d_y);
     }
 
     _splines = new struct splines;
@@ -67,16 +67,16 @@ void Map::setLocality(int next_wp)
         WAYPOINTS_SPAN_BACKWARD = 2,
     };
 
-    const int num_waypoints = map_waypoints_s.size();
+    const int num_waypoints = _map_waypoints_s.size();
     vector<double> waypoints_x, waypoints_y, waypoints_s, waypoints_dx, waypoints_dy;
 
-    local_s_correction = 0.0;
-    local_s_transition = max_s;
+    _local_s_correction = 0.0;
+    _local_s_transition = max_s;
 
     double _s = 0.0;
 
-    first_local_wp = (next_wp + num_waypoints - WAYPOINTS_SPAN_BACKWARD) % num_waypoints;
-    last_local_wp = (next_wp + WAYPOINTS_SPAN_FORWARD) % num_waypoints;
+    _first_local_wp = (next_wp + num_waypoints - WAYPOINTS_SPAN_BACKWARD) % num_waypoints;
+    _last_local_wp = (next_wp + WAYPOINTS_SPAN_FORWARD) % num_waypoints;
 
     for (int i = -WAYPOINTS_SPAN_BACKWARD; i <= WAYPOINTS_SPAN_FORWARD; ++i) {
         int wp = i + next_wp + num_waypoints;
@@ -84,20 +84,20 @@ void Map::setLocality(int next_wp)
         while(wp >= num_waypoints)
             wp -= num_waypoints;
 
-        double map_s = map_waypoints_s[wp];
+        double map_s = _map_waypoints_s[wp];
 
         if (map_s < _s) {
-            local_s_correction = max_s;
-            local_s_transition = map_s;
+            _local_s_correction = max_s;
+            _local_s_transition = map_s;
         }
 
         _s = map_s;
 
-        waypoints_s.push_back(map_s + local_s_correction);
-        waypoints_x.push_back(map_waypoints_x[wp]);
-        waypoints_y.push_back(map_waypoints_y[wp]);
-        waypoints_dx.push_back(map_waypoints_dx[wp]);
-        waypoints_dy.push_back(map_waypoints_dy[wp]);
+        waypoints_s.push_back(map_s + _local_s_correction);
+        waypoints_x.push_back(_map_waypoints_x[wp]);
+        waypoints_y.push_back(_map_waypoints_y[wp]);
+        waypoints_dx.push_back(_map_waypoints_dx[wp]);
+        waypoints_dy.push_back(_map_waypoints_dy[wp]);
     }
 
 
@@ -108,18 +108,18 @@ void Map::setLocality(int next_wp)
 
     const double s_delta = 0.5;
 
-    local_waypoints_s.clear();
-    local_waypoints_x.clear();
-    local_waypoints_y.clear();
-    local_waypoints_dx.clear();
-    local_waypoints_dy.clear();
+    _local_waypoints_s.clear();
+    _local_waypoints_x.clear();
+    _local_waypoints_y.clear();
+    _local_waypoints_dx.clear();
+    _local_waypoints_dy.clear();
 
     for (double s = waypoints_s[0]; s < waypoints_s[waypoints_s.size()-1] ; s += s_delta) {
-        local_waypoints_s.push_back(s);
-        local_waypoints_x.push_back(_splines->x(s));
-        local_waypoints_y.push_back(_splines->y(s));
-        local_waypoints_dx.push_back(_splines->dx(s));
-        local_waypoints_dy.push_back(_splines->dy(s));
+        _local_waypoints_s.push_back(s);
+        _local_waypoints_x.push_back(_splines->x(s));
+        _local_waypoints_y.push_back(_splines->y(s));
+        _local_waypoints_dx.push_back(_splines->dx(s));
+        _local_waypoints_dy.push_back(_splines->dy(s));
     }
 }
 
@@ -142,13 +142,13 @@ int Map::getLane(double d)
 
 void Map::setLocality(double x, double y, double theta)
 {
-    int next_wp = NextWaypoint(x,y, theta, map_waypoints_x, map_waypoints_y);
+    int next_wp = NextWaypoint(x,y, theta, _map_waypoints_x, _map_waypoints_y);
     setLocality(next_wp);
 }
 
 void Map::setLocality(double s)
 {
-    int next_wp = NextWaypoint(s, map_waypoints_s);
+    int next_wp = NextWaypoint(s, _map_waypoints_s);
     setLocality(next_wp);
 }
 
@@ -158,16 +158,16 @@ vector<double> Map::getFrenet(double x, double y, double theta, bool fine, bool 
         if (localize)
             setLocality(x, y, theta);
 
-        vector<double> sd = getFrenet(x, y, theta, local_waypoints_x, local_waypoints_y);
+        vector<double> sd = getFrenet(x, y, theta, _local_waypoints_x, _local_waypoints_y);
 
-        sd[0] += map_waypoints_s[first_local_wp];
+        sd[0] += _map_waypoints_s[_first_local_wp];
 
         while (sd[0] > max_s)
             sd[0] -= max_s;
 
         return sd;
     } else {
-        return getFrenet(x, y, theta, map_waypoints_x, map_waypoints_y);
+        return getFrenet(x, y, theta, _map_waypoints_x, _map_waypoints_y);
     }
 }
 
@@ -182,12 +182,12 @@ vector<double> Map::getXY(double s, double d, bool fine, bool localize)
         if (localize)
             setLocality(s);
 
-        if (s >= local_s_transition && s <= map_waypoints_s[last_local_wp])
-            s += local_s_correction;
+        if (s >= _local_s_transition && s <= _map_waypoints_s[_last_local_wp])
+            s += _local_s_correction;
 
         return {_splines->x(s) + d*_splines->dx(s), _splines->y(s) + d*_splines->dy(s)};
     } else {
-        return getXY(s, d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+        return getXY(s, d, _map_waypoints_s, _map_waypoints_x, _map_waypoints_y);
     }
 }
 

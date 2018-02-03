@@ -49,23 +49,23 @@ private:
     vector<double> getFrenet(double x, double y, double theta, const vector<double> &maps_x, const vector<double> &maps_y);
     vector<double> getXY(double s, double d, const vector<double> &maps_s, const vector<double> &maps_x, const vector<double> &maps_y);
 
-    vector<double> map_waypoints_x;
-    vector<double> map_waypoints_y;
-    vector<double> map_waypoints_s;
-    vector<double> map_waypoints_dx;
-    vector<double> map_waypoints_dy;
+    vector<double> _map_waypoints_x;
+    vector<double> _map_waypoints_y;
+    vector<double> _map_waypoints_s;
+    vector<double> _map_waypoints_dx;
+    vector<double> _map_waypoints_dy;
 
-    vector<double> local_waypoints_x;
-    vector<double> local_waypoints_y;
-    vector<double> local_waypoints_s;
-    vector<double> local_waypoints_dx;
-    vector<double> local_waypoints_dy;
+    vector<double> _local_waypoints_x;
+    vector<double> _local_waypoints_y;
+    vector<double> _local_waypoints_s;
+    vector<double> _local_waypoints_dx;
+    vector<double> _local_waypoints_dy;
 
-    int first_local_wp;
-    int last_local_wp;
+    int _first_local_wp;
+    int _last_local_wp;
 
-    double local_s_correction = 0.0;
-    double local_s_transition = max_s;
+    double _local_s_correction = 0.0;
+    double _local_s_transition = max_s;
 
     struct splines;
     struct splines * _splines;
