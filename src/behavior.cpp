@@ -6,6 +6,9 @@ using namespace std;
 void print_vector(vector<double>& vec, const string& name, int n=0);
 void print_vector(vector<double>& vec, const string& name, int b, int e);
 
+const double Behavior::speed_limit = 20.0;
+const double Behavior::max_acceleration = 9.0;
+
 Behavior::Behavior():_target{1,20.0}, _traffic(3)
 {}
 
@@ -85,47 +88,63 @@ void Behavior::updateTraffic(Car& ego, map<int, Car>& cars, Map * track)
         cout << endl;
     }
 
+
+
 }
 
-// vector<double> Behavior::getKinematics(Car& ego, int lane) {
-//     /* 
-//     Gets next timestep kinematics (position, velocity, acceleration) 
-//     for a given lane. Tries to choose the maximum velocity and acceleration, 
-//     given other vehicle positions and accel/velocity constraints.
-//     */
-//     double max_velocity_accel_limit = this->max_acceleration + this->v;
-//     double new_position;
-//     double new_velocity;
-//     double new_accel;
-//     Vehicle vehicle_ahead;
-//     Vehicle vehicle_behind;
+vector<double> Behavior::getLaneKinematics(Car& ego, int lane, double duration) {
+    /* 
+    Gets next timestep kinematics (position, velocity, acceleration) 
+    for a given lane. Tries to choose the maximum velocity and acceleration, 
+    given other vehicle positions and accel/velocity constraints.
+    */
+    double max_velocity_accel_limit = max_acceleration * duration + ego._s_predicted[1];
+    double new_position;
+    double new_velocity;
+    double new_accel;
 
-//     if (get_vehicle_ahead(predictions, lane, vehicle_ahead)) {
+    if (_traffic[lane].size() > 0) { // there are cars in lane
 
-//         if (get_vehicle_behind(predictions, lane, vehicle_behind)) {
-//             new_velocity = vehicle_ahead.v; //must travel at the speed of traffic, regardless of preferred buffer
-//         } else {
-//             float max_velocity_in_front = (vehicle_ahead.s - this->s - this->preferred_buffer) + vehicle_ahead.v - 0.5 * (this->a);
-//             new_velocity = min(min(max_velocity_in_front, max_velocity_accel_limit), this->target_speed);
-//         }
-//     } else {
-//         new_velocity = min(max_velocity_accel_limit, this->target_speed);
-//     }
+        if (_traffic[lane][0]._s_predicted[0] > ego._s_predicted[0]) { // there is a car ahead
+            Car car_ahead = _traffic[lane][0];
+                cout << 'A';
+
+            if (_traffic[lane].size() > 1) { // there is a car behind
+                cout << 'B';
+                new_velocity = car_ahead._s_predicted[1]; //must travel at the speed of traffic, regardless of preferred buffer
+            } else {
+                double max_velocity_in_front = 2 * (car_ahead._s_predicted[0] - ego._s_predicted[0] - 30) / duration - car_ahead._s_predicted[1];
+                new_velocity = min(min(max_velocity_in_front, max_velocity_accel_limit), speed_limit);
+            }
+        } else {
+            new_velocity = min(max_velocity_accel_limit, speed_limit);
+        }
+
+    } else {
+        new_velocity = min(max_velocity_accel_limit, speed_limit);
+    }
     
-//     new_accel = new_velocity - this->v; //Equation: (v_1 - v_0)/t = acceleration
-//     new_position = this->s + new_velocity + new_accel / 2.0;
-//     return{new_position, new_velocity, new_accel};
-    
-// }
+    new_accel = (new_velocity - ego._s_predicted[1]) / duration; //Equation: (v_1 - v_0)/t = acceleration
+    new_position = ego._s_predicted[0] + new_velocity * duration + new_accel * duration * duration / 2.0;
+    return {new_position, new_velocity, new_accel};    
+}
 
 
-struct Behavior::target Behavior::generateBehavior(Car& ego, map<int, Car>& cars, Map * track)
+struct Behavior::target Behavior::generateBehavior(Car& ego, map<int, Car>& cars, Map * track, double planning_duration)
 {
     bool too_close = false;  
     int ego_lane = track->getLane(ego._d_predicted[0]); 
     double ego_predicted_s = ego._s_predicted[0];
 
     updateTraffic(ego, cars, track);
+
+    for (int i = 0; i < 3; ++i) {
+        vector<double> lane_s = getLaneKinematics(ego, i, planning_duration);
+        cout << i << ' ';
+        if (_traffic[i].size() > 0 )
+            cout << _traffic[i][0]._s_predicted[1] << ' ';
+        print_vector(lane_s, "lane_s");
+    }
 
     double intended_speed;
     

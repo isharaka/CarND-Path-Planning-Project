@@ -402,7 +402,7 @@ int main() {
            
 
             // BEHAVIOR PLANNINGS
-            struct Behavior::target target_behavior = behavior->generateBehavior(ego, cars, track);
+            struct Behavior::target target_behavior = behavior->generateBehavior(ego, cars, track, prediction_horizon_env);
 
 
             // TRAJECTORY GENERATION

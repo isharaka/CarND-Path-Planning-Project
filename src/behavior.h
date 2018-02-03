@@ -13,7 +13,10 @@ public:
         double speed;
     };
 
-    struct target generateBehavior(Car& ego, map<int, Car>& cars, Map * track);
+    struct target generateBehavior(Car& ego, map<int, Car>& cars, Map * track, double planning_duration);
+
+    static const double speed_limit;
+    static const double max_acceleration;
 
 
 private:
@@ -31,4 +34,5 @@ private:
     vector<vector<Car>> _traffic;
 
     void updateTraffic(Car& ego, map<int, Car>& cars, Map * track);
+    vector<double> getLaneKinematics(Car& ego, int lane, double duration);
 };
