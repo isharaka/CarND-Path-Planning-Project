@@ -12,8 +12,9 @@ public:
         int speed;
     };
 
-    struct target generateBehavior();
+    struct target generateBehavior(Car& ego, map<int, Car>& cars, Map * track);
 
 
 private:
+    struct target _target;
 };

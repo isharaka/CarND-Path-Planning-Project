@@ -1,3 +1,6 @@
+#ifndef _PREDICTION_
+#define _PREDICTION_
+
 #include <vector>
 
 #include "map.h"
@@ -32,3 +35,5 @@ public:
 private:
     vector<vector<double>> _sensor_fusion;     
 };
+
+#endif

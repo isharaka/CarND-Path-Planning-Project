@@ -14,6 +14,8 @@
 #include "trajectory.h"
 #include "motion.h"
 #include "prediction.h"
+#include "car.h"
+#include "behavior.h"
 
 using namespace std;
 
@@ -228,12 +230,11 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 
 
 
-  int ref_lane = 1;
-  double ref_vel = 20; 
   Map * track;
   Trajectory * trajectory;
   Motion * motion;
   Prediction * prediction;
+  Behavior * behavior;
 
   int count_i = 0;
 
@@ -279,6 +280,7 @@ int main() {
   trajectory = new Trajectory();
   motion = new Motion();
   prediction = new Prediction();
+  behavior = new Behavior();
 
   double sd[][2]={{0, 0},{120.7,10},{6875,-10},{6920,0}};
   //double sd[][2]={{384, 0},{390.7,0},{745,0},{760,0}};
@@ -394,43 +396,24 @@ int main() {
             Car ego = Car(-1, motion->getS(), motion->getD(), trajectory->s(prediction_horizon), trajectory->d(prediction_horizon));
 
             map<int, Car> cars = prediction->predict(motion->getPreviousPathOverlapTime() + trajectory->time_horizon);  
-            
-            bool too_close = false;          
 
-            for (std::map<int,Car>::iterator it=cars.begin(); it!=cars.end(); ++it) {
-              Car car = it->second;
-              int lane = track->getLane(ego._d_predicted[0]);
-
-              if (car._d_predicted[0] < track->getD(lane) + 2 && car._d_predicted[0] > track->getD(lane) - 2) {
-
-                if (car._s_predicted[0] > ego._s_predicted[0] && (car._s_predicted[0] - ego._s_predicted[0]) < 30) {
-
-                  too_close = true;
-                }
-              }
-            }
-
-            if (too_close) {
-              if (ref_vel > 5)
-                ref_vel -= 1;
-            } else if (ref_vel < 22) {
-              ref_vel += 1;
-            }
+           
+            struct Behavior::target target_behavior = behavior->generateBehavior(ego, cars, track);
 
             vector<double> s_f(3), d_f(3);
 
 #if 0
-            s_f[0] = s_i[0] + ref_vel * trajectory->time_horizon;
-            d_f[0] = 2 + 4*ref_lane;
+            s_f[0] = s_i[0] + target_behavior.speed * trajectory->time_horizon;
+            d_f[0] = 2 + 4*target_behavior.lane;
 
             trajectory->generateCVTrajectory(s_i, d_i, s_f, d_f, trajectory->time_horizon);
 #else
-            d_f[0] = 2 + 4*ref_lane;
+            d_f[0] = 2 + 4*target_behavior.lane;
             d_f[1] = 0;
             d_f[2] = 0;
 
-            s_f[0] = s_i[0] + (s_i[1] + ref_vel) * trajectory->time_horizon / 2;
-            s_f[1] = ref_vel;
+            s_f[0] = s_i[0] + (s_i[1] + target_behavior.speed) * trajectory->time_horizon / 2;
+            s_f[1] = target_behavior.speed;
             s_f[2] = 0;
 
             print_vector(s_i, "s_i");
@@ -450,7 +433,7 @@ int main() {
 #if 1
             motion->generateMotion(trajectory, track);
 #else
-            motion->generateMotion(trajectory, track, lane, ref_vel);
+            motion->generateMotion(trajectory, track, lane, target_behavior.speed);
 #endif
 
             vector<double> next_x_vals;

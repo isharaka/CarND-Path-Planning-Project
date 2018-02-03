@@ -1,3 +1,6 @@
+#ifndef _CAR_
+#define _CAR_
+
 #include <vector>
 
 #include "map.h"
@@ -19,3 +22,5 @@ class Car
         vector<double> _s_predicted;
         vector<double> _d_predicted;
 };
+
+#endif
