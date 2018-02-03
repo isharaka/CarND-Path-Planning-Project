@@ -116,8 +116,8 @@ void Motion::generateMotion(Trajectory * trajectory, Map * track)
         ptsy.push_back(next_wp[1]);
     }
 
-    print_vector(ptss, "ptss");
-    print_vector(ptsd, "ptsd");
+    //print_vector(ptss, "ptss");
+    //print_vector(ptsd, "ptsd");
     //print_vector(ptsx, "ptsx");
     //print_vector(ptsy, "ptsy");
 
@@ -156,9 +156,9 @@ void Motion::generateMotion(Trajectory * trajectory, Map * track)
         _next_y_vals.push_back(y_point);
     }
 
-    print_vector(_next_s_vals, " _next_s_vals-", 10);
-    print_vector(_next_s_vals, "-_next_s_vals-", _path_overlap-5, _path_overlap+5);
-    print_vector(_next_s_vals, "-_next_s_vals ", -10);
+    //print_vector(_next_s_vals, " _next_s_vals-", 10);
+    //print_vector(_next_s_vals, "-_next_s_vals-", _path_overlap-5, _path_overlap+5);
+    //print_vector(_next_s_vals, "-_next_s_vals ", -10);
 
 
 }

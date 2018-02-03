@@ -388,9 +388,9 @@ int main() {
             vector<double> d_i = motion->getInitD();
 
 
-            cout << "travel t:" << motion->getPreviousPathTravelTime() << " overlap:" << motion->getPreviousPathOverlapTime() <<
-              " pre init s:" << motion->getPreviousInitS()[0] << " pre init d:" << motion->getPreviousInitD()[0] << 
-              " pre s(0):" << trajectory->s(0)[0] << " pre s dot(0):" << trajectory->s(0)[1]  << endl;
+            //cout << "travel t:" << motion->getPreviousPathTravelTime() << " overlap:" << motion->getPreviousPathOverlapTime() <<
+            //  " pre init s:" << motion->getPreviousInitS()[0] << " pre init d:" << motion->getPreviousInitD()[0] << 
+            //  " pre s(0):" << trajectory->s(0)[0] << " pre s dot(0):" << trajectory->s(0)[1]  << endl;
 
 
             // PREDICTION
@@ -422,8 +422,8 @@ int main() {
             print_vector(d_i, "d_i");
             print_vector(d_f, "d_f");
 
-            print_vector(x_i, "x_i");
-            print_vector(y_i, "y_i");
+            //print_vector(x_i, "x_i");
+            //print_vector(y_i, "y_i");
 
             trajectory->generateJMTrajectory(s_i, d_i, s_f, d_f, trajectory->time_horizon);
 
