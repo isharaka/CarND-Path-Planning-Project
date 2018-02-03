@@ -27,4 +27,6 @@ private:
 
     struct target _target;
     enum state _state;
+
+    vector<vector<Car>> _traffic;
 };
