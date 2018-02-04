@@ -40,9 +40,18 @@ private:
     vector<vector<Car>> _traffic;
 
     void updateTraffic(Car& ego, map<int, Car>& cars, Map * track);
+    bool carsInLane(int lane);
+    bool carAheadInLane(int lane, Car& ego);
+    bool carBehindInLane(int lane, Car& ego);
+
+
     vector<double> getLaneKinematics(Car& ego, int lane, double duration);
+
+    vector<Car> keepLaneTrajectory(Car& ego, Map * track, double duration);
+    vector<Car> generateTrajectory(enum state state, Car& ego, Map * track, double duration);
+
     vector<enum state> successorStates(Car& ego, Map * track);
-    void chooseNextState(Car& ego, Map * track);
+    struct target chooseNextState(Car& ego, Map * track, double duration);
 
     static const string _state_names[NUM_STATES];
 };
