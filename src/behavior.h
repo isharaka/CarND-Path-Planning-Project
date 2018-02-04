@@ -38,14 +38,15 @@ private:
     enum state _state;
 
     vector<vector<Car>> _traffic;
+    vector<vector<Car>> _traffic_predicted;
 
     void updateTraffic(Car& ego, map<int, Car>& cars, Map * track);
-    bool carsInLane(int lane);
-    bool carAheadInLane(int lane, Car& ego);
-    bool carBehindInLane(int lane, Car& ego);
+    bool carsInLane(int lane, bool predicted = true);
+    bool carAheadInLane(int lane, Car& ego, bool predicted = true);
+    bool carBehindInLane(int lane, Car& ego, bool predicted = true);
 
 
-    vector<double> getLaneKinematics(Car& ego, int lane, double duration);
+    vector<double> getLaneKinematics(Car& ego, int lane, double duration, bool predicted = true);
 
     vector<Car> keepLaneTrajectory(Car& ego, Map * track, double duration);
     vector<Car> generateTrajectory(enum state state, Car& ego, Map * track, double duration);
