@@ -373,6 +373,22 @@ vector<Car> Behavior::generateTrajectory(enum state state, Car& ego, Map * track
     return trajectory;
 }
 
+double Behavior::getOuterLaneCost(enum state state, Car& ego, vector<Car>& trajectory, Map * track)
+{
+    double outerlane_cost = 0.0;
+
+    if (trajectory.size() == 0)
+        return 1.0;
+
+    Car last = trajectory[trajectory.size() - 1];
+
+    int final_lane = track->getLane(last._d[0]);
+
+    outerlane_cost = (final_lane == track->leftmost_lane || final_lane == track->rightmost_lane) ? 1.0 : 0.0;
+
+    return outerlane_cost;
+}
+
 double Behavior::getEfficiencyCost(enum state state, Car& ego, vector<Car>& trajectory, Map * track)
 {
     double efficiency_cost = 1.0;
@@ -413,8 +429,9 @@ double Behavior::getCost(enum state state, Car& ego, vector<Car>& trajectory, Ma
         return cost;
 
     double efficiency_cost = getEfficiencyCost(state, ego, trajectory, track);
+    double outerlane_cost = getOuterLaneCost(state, ego, trajectory, track);
 
-    return efficiency_cost;
+    return 0.9*efficiency_cost + 0.1*outerlane_cost;
 }
 
 
@@ -558,7 +575,7 @@ struct Behavior::target Behavior::generateBehavior(Car& ego, map<int, Car>& cars
 
 
     if (too_close) {
-        if (_target.speed > 5)
+        if (_target.speed > 2)
         _target.speed -= 1;
     } else if (_target.speed < intended_speed) {
         _target.speed += 1;

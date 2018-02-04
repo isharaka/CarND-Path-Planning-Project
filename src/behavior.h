@@ -57,6 +57,7 @@ private:
     vector<Car> laneChangeTrajectory(enum state state, Car& ego, Map * track, double duration);
     vector<Car> generateTrajectory(enum state state, Car& ego, Map * track, double duration);
 
+    double getOuterLaneCost(enum state state, Car& ego, vector<Car>& trajectory, Map * track);
     double getEfficiencyCost(enum state state, Car& ego, vector<Car>& trajectory, Map * track);
     double getCost(enum state state, Car& ego, vector<Car>& trajectory, Map * track);
 
