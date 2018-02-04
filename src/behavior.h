@@ -42,22 +42,26 @@ private:
 
     void updateTraffic(Car& ego, map<int, Car>& cars, Map * track);
     bool carsInLane(int lane, bool predicted = true);
-    bool carAheadInLane(int lane, Car& ego, bool predicted = true);
-    bool carBehindInLane(int lane, Car& ego, bool predicted = true);
-    double laneSpeed(int lane, bool predicted = true);
+    bool carAheadInLane(int lane, Car& ego, Car& other, bool predicted = true);
+    bool carBehindInLane(int lane, Car& ego, Car& other, bool predicted = true);
+    double laneSpeed(int lane, Car& ego, bool predicted = true);
 
 
     vector<double> getLaneKinematics(Car& ego, int lane, double duration, bool predicted = true);
 
-    vector<Car> keepLaneTrajectory(Car& ego, Map * track, double duration);
+    vector<Car> keepLaneTrajectory(enum state state, Car& ego, Map * track, double duration);
+    vector<Car> prepLaneChangeTrajectory(enum state state, Car& ego, Map * track, double duration);
+    vector<Car> laneChangeTrajectory(enum state state, Car& ego, Map * track, double duration);
     vector<Car> generateTrajectory(enum state state, Car& ego, Map * track, double duration);
 
-    double getCost(vector<Car>& trajectory, Map * track);
+    double getEfficiencyCost(enum state state, Car& ego, vector<Car>& trajectory, Map * track);
+    double getCost(enum state state, Car& ego, vector<Car>& trajectory, Map * track);
 
     vector<enum state> successorStates(Car& ego, Map * track);
     struct target chooseNextState(Car& ego, Map * track, double duration);
 
     static const string _state_names[NUM_STATES];
+    static map<enum state, int> _lane_direction;
 };
 
 #endif
