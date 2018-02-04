@@ -383,8 +383,21 @@ double Behavior::getOuterLaneCost(enum state state, Car& ego, vector<Car>& traje
     Car last = trajectory[trajectory.size() - 1];
 
     int final_lane = track->getLane(last._d[0]);
+    int intended_lane;
 
-    outerlane_cost = (final_lane == track->leftmost_lane || final_lane == track->rightmost_lane) ? 1.0 : 0.0;
+    switch(state) {
+    case PREPARE_CHANGE_LANE_LEFT: 
+        intended_lane = min(track->rightmost_lane, max(track->leftmost_lane, final_lane - 1));
+        break;
+    case PREPARE_CHANGE_LANE_RIGHT: 
+        intended_lane = min(track->rightmost_lane, max(track->leftmost_lane, final_lane + 1));
+        break;
+    default:
+        intended_lane = final_lane;
+        break;        
+    }
+
+    outerlane_cost = (intended_lane == track->leftmost_lane || intended_lane == track->rightmost_lane) ? 1.0 : 0.0;
 
     return outerlane_cost;
 }
@@ -431,7 +444,7 @@ double Behavior::getCost(enum state state, Car& ego, vector<Car>& trajectory, Ma
     double efficiency_cost = getEfficiencyCost(state, ego, trajectory, track);
     double outerlane_cost = getOuterLaneCost(state, ego, trajectory, track);
 
-    return 0.9*efficiency_cost + 0.1*outerlane_cost;
+    return 0.95*efficiency_cost + 0.05*outerlane_cost;
 }
 
 
@@ -455,13 +468,17 @@ vector<enum Behavior::state> Behavior::successorStates(Car& ego, Map * track) {
             states.push_back(PREPARE_CHANGE_LANE_RIGHT);
         break;
 
-    case PREPARE_CHANGE_LANE_LEFT:  
+    case PREPARE_CHANGE_LANE_LEFT: 
         states.push_back(PREPARE_CHANGE_LANE_LEFT);
         states.push_back(CHANGE_LANE_LEFT);
+        if (ego_lane != track->rightmost_lane)
+            states.push_back(PREPARE_CHANGE_LANE_RIGHT);
         break;
     case PREPARE_CHANGE_LANE_RIGHT:  
         states.push_back(PREPARE_CHANGE_LANE_RIGHT);
         states.push_back(CHANGE_LANE_RIGHT);
+        if (ego_lane != track->leftmost_lane)
+            states.push_back(PREPARE_CHANGE_LANE_LEFT);
         break;
     case CHANGE_LANE_LEFT:  
         states.push_back(CHANGE_LANE_LEFT);
