@@ -44,12 +44,15 @@ private:
     bool carsInLane(int lane, bool predicted = true);
     bool carAheadInLane(int lane, Car& ego, bool predicted = true);
     bool carBehindInLane(int lane, Car& ego, bool predicted = true);
+    double laneSpeed(int lane, bool predicted = true);
 
 
     vector<double> getLaneKinematics(Car& ego, int lane, double duration, bool predicted = true);
 
     vector<Car> keepLaneTrajectory(Car& ego, Map * track, double duration);
     vector<Car> generateTrajectory(enum state state, Car& ego, Map * track, double duration);
+
+    double getCost(vector<Car>& trajectory, Map * track);
 
     vector<enum state> successorStates(Car& ego, Map * track);
     struct target chooseNextState(Car& ego, Map * track, double duration);

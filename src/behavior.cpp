@@ -161,6 +161,15 @@ bool Behavior::carBehindInLane(int lane, Car& ego, bool predicted)
     return predicted ? (_traffic_predicted[lane].size() > 1) : (_traffic[lane].size() > 1);
 }
 
+double Behavior::laneSpeed(int lane, bool predicted)
+{
+    if (predicted)
+        return (_traffic_predicted[lane].size() > 0) ? min(_traffic_predicted[lane][0]._s_predicted[1], speed_limit) : speed_limit;
+    else
+        return (_traffic[lane].size() > 0) ? min(_traffic[lane][0]._s_predicted[1], speed_limit) : speed_limit;
+}
+
+
 vector<double> Behavior::getLaneKinematics(Car& ego, int lane, double duration, bool predicted) {
     /* 
     Gets next timestep kinematics (position, velocity, acceleration) 
@@ -311,6 +320,26 @@ vector<Car> Behavior::generateTrajectory(enum state state, Car& ego, Map * track
     return trajectory;
 }
 
+double Behavior::getCost(vector<Car>& trajectory, Map * track)
+{
+    double cost = 1.0;
+
+    if (trajectory.size() == 0)
+        return cost;
+
+    Car last = trajectory[trajectory.size() - 1];
+
+    int final_lane = track->getLane(last._d[0]);
+    int intended_lane = final_lane;
+
+    double final_speed = laneSpeed(final_lane);
+    double intended_speed = laneSpeed(intended_lane);
+
+    cost = (2.0*speed_limit - final_speed - intended_speed) / (2.0*speed_limit);
+
+    return cost;
+}
+
 
 struct Behavior::target Behavior::chooseNextState(Car& ego, Map * track, double duration) {
     /*
@@ -332,24 +361,29 @@ struct Behavior::target Behavior::chooseNextState(Car& ego, Map * track, double 
     struct target intended_behavior = {track->getLane(ego._d[0]), speed_limit};
 
     for (vector<enum state>::iterator it = states.begin(); it != states.end(); ++it) {
-        cout << _state_names[*it] << ' ';
+        cout << _state_names[*it] << '[';
 
         vector<Car> trajectory = generateTrajectory(*it, ego, track, duration);
 
+        cost = getCost(trajectory, track);
+        costs.push_back(cost);
+        final_trajectories.push_back(trajectory);
+
+        cout << cost << "] ";
+
         if (trajectory.size() > 1) {
-            cout << trajectory[0]._s[0] << ':' << trajectory[0]._s[1] << "=>" << trajectory[1]._s[0] << ':' << trajectory[1]._s[1];
-        //     cost = calculate_cost(*this, predictions, trajectory);
-        //     costs.push_back(cost);
-        //     final_trajectories.push_back(trajectory);
-            intended_behavior.speed = trajectory[1]._s[1];
+            cout << trajectory[0]._s[0] << ':' << trajectory[0]._s[1] << "=>" << trajectory[1]._s[0] << ':' << trajectory[1]._s[1];   
         }
         cout << endl;
+
     }
 
 
-    // vector<float>::iterator best_cost = min_element(begin(costs), end(costs));
-    // int best_idx = distance(begin(costs), best_cost);
-    // final_trajectories[best_idx];
+    vector<double>::iterator best_cost = min_element(begin(costs), end(costs));
+    int best_idx = distance(begin(costs), best_cost);
+
+    intended_behavior.speed = final_trajectories[best_idx][1]._s[1];
+    intended_behavior.lane = track->getLane(final_trajectories[best_idx][1]._d[0]);
 
     return intended_behavior;
 }

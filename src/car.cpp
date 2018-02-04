@@ -24,7 +24,7 @@ Car::Car(int id,
 Car::Car(int id, 
     vector<double> s, 
     vector<double> d):
-        _id(id), _s(s), _d(d), _t_predicted(0.0), _s_predicted(1), _d_predicted(1)
+        _id(id), _s(s), _d(d), _t_predicted(0.0), _s_predicted(s), _d_predicted(d)
 {
 
 }
