@@ -40,13 +40,16 @@ private:
     vector<vector<Car>> _traffic;
     vector<vector<Car>> _traffic_predicted;
 
+    vector<vector<double>> _kinematics;
+    vector<vector<double>> _predicted_kinematics;
+
     void updateTraffic(Car& ego, map<int, Car>& cars, Map * track);
     bool carsInLane(int lane, bool predicted = true);
     bool carAheadInLane(int lane, Car& ego, Car& other, bool predicted = true);
     bool carBehindInLane(int lane, Car& ego, Car& other, bool predicted = true);
     double laneSpeed(int lane, Car& ego, bool predicted = true);
 
-
+    void updateLaneKinematics(Car& ego, double duration, bool predicted = true);
     vector<double> getLaneKinematics(Car& ego, int lane, double duration, bool predicted = true);
 
     vector<Car> keepLaneTrajectory(enum state state, Car& ego, Map * track, double duration);
@@ -62,6 +65,8 @@ private:
 
     static const string _state_names[NUM_STATES];
     static map<enum state, int> _lane_direction;
+    static const double _front_buffer;
+    static const double _rear_buffer;
 };
 
 #endif

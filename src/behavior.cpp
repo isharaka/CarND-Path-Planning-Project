@@ -6,16 +6,18 @@ using namespace std;
 void print_vector(vector<double>& vec, const string& name, int n=0);
 void print_vector(vector<double>& vec, const string& name, int b, int e);
 
-const double Behavior::speed_limit = 22.0;
+const double Behavior::speed_limit = 20.0;
 const double Behavior::max_acceleration = 9.0;
-const string Behavior::_state_names[NUM_STATES] = {"KL", "PCLL", "PCLR", "CLL", "CLR"};
+const double Behavior::_front_buffer = 30.0;
+const double Behavior::_rear_buffer = 60.0;
+const string Behavior::_state_names[NUM_STATES] = {"KL  ", "PCLL", "PCLR", "CLL ", "CLR "};
 map<enum Behavior::state, int> Behavior::_lane_direction = {{Behavior::KEEP_LANE, 0}, 
                                                         {Behavior::PREPARE_CHANGE_LANE_LEFT, -1}, 
                                                         {Behavior::CHANGE_LANE_LEFT, -1}, 
                                                         {Behavior::PREPARE_CHANGE_LANE_RIGHT, 1}, 
                                                         {Behavior::CHANGE_LANE_RIGHT, 1}};
 
-Behavior::Behavior():_target{1,20.0}, _traffic(3), _traffic_predicted(3), _state(KEEP_LANE)
+Behavior::Behavior():_target{1,20.0}, _traffic(3), _traffic_predicted(3), _kinematics(3), _predicted_kinematics(3), _state(KEEP_LANE)
 {}
 
 struct compare_s
@@ -145,9 +147,6 @@ void Behavior::updateTraffic(Car& ego, map<int, Car>& cars, Map * track)
         }
         cout << endl;
     }
-
-
-
 }
 
 bool Behavior::carsInLane(int lane, bool predicted)
@@ -201,18 +200,11 @@ bool Behavior::carBehindInLane(int lane, Car& ego, Car& other, bool predicted)
 
 double Behavior::laneSpeed(int lane, Car& ego, bool predicted)
 {
-    #if 0
-    if (predicted)
-        return (_traffic_predicted[lane].size() > 0) ? min(_traffic_predicted[lane][0]._s_predicted[1], speed_limit) : speed_limit;
-    else
-        return (_traffic[lane].size() > 0) ? min(_traffic[lane][0]._s_predicted[1], speed_limit) : speed_limit;
-    #else
     return getLaneKinematics(ego, lane, predicted)[1];
-    #endif
 }
 
-
-vector<double> Behavior::getLaneKinematics(Car& ego, int lane, double duration, bool predicted) {
+void Behavior::updateLaneKinematics(Car& ego, double duration, bool predicted)
+{
     /* 
     Gets next timestep kinematics (position, velocity, acceleration) 
     for a given lane. Tries to choose the maximum velocity and acceleration, 
@@ -223,41 +215,66 @@ vector<double> Behavior::getLaneKinematics(Car& ego, int lane, double duration, 
     double new_velocity;
     double new_accel;
 
-    if (carsInLane(lane, predicted)) { // there are cars in lane
-        Car car_ahead;
+    int num_lanes = predicted ? _predicted_kinematics.size() : _kinematics.size();
 
-        if (carAheadInLane(lane, ego, car_ahead, predicted)) { //cout << 'A';// there is a car ahead 
-            Car car_behind;   
+    for(int lane = 0; lane < num_lanes; ++lane) {
 
-            if (carBehindInLane(lane, ego, car_behind, predicted)) { //cout << 'B';// there is a car behind          
-                double velocity_in_front = car_ahead._s_predicted[1]; //must travel at the speed of traffic, regardless of preferred buffer
-                new_velocity = min(min(velocity_in_front, max_velocity_accel_limit), speed_limit);
-            } else { //cout << ' ';
-                double max_velocity_in_front = 2 * (car_ahead._s_predicted[0] - ego._s[0] - 30) / duration - car_ahead._s_predicted[1];
-                new_velocity = min(min(max_velocity_in_front, max_velocity_accel_limit), speed_limit);
+        if (carsInLane(lane, predicted)) { // there are cars in lane
+            Car car_ahead;
+
+            if (carAheadInLane(lane, ego, car_ahead, predicted)) { cout << 'A';// there is a car ahead 
+                Car car_behind;   
+
+                if (carBehindInLane(lane, ego, car_behind, predicted)) { cout << 'B';// there is a car behind          
+                    double velocity_in_front = car_ahead._s_predicted[1]; //must travel at the speed of traffic, regardless of preferred buffer
+                    new_velocity = min(min(velocity_in_front, max_velocity_accel_limit), speed_limit);
+                } else { cout << ' ';
+                    double max_velocity_in_front = 2 * (car_ahead._s_predicted[0] - ego._s[0] - _front_buffer) / duration - car_ahead._s_predicted[1];
+                    new_velocity = min(min(max_velocity_in_front, max_velocity_accel_limit), speed_limit);
+                }
+            } else { cout << "  ";
+                new_velocity = min(max_velocity_accel_limit, speed_limit);
             }
-        } else { //cout << "  ";
+
+        } else { cout << "  ";
             new_velocity = min(max_velocity_accel_limit, speed_limit);
         }
 
-    } else { //cout << "  ";
-        new_velocity = min(max_velocity_accel_limit, speed_limit);
+        cout << ' ';
+        
+        new_accel = (new_velocity - ego._s_predicted[1]) / duration; //Equation: (v_1 - v_0)/t = acceleration
+        new_position = ego._s_predicted[0] + new_velocity * duration + new_accel * duration * duration / 2.0;
+
+        vector<double> kinematics = {new_position, new_velocity, new_accel};
+
+        if (predicted)
+            _predicted_kinematics[lane] = kinematics; 
+        else
+            _kinematics[lane] = kinematics; 
+
+        cout << lane << ' ';
+
+        if (_traffic_predicted[lane].size() > 0 )
+            cout << _traffic_predicted[lane][0]._s_predicted[1] << ' ';
+
+        print_vector(kinematics, "kinematics");
     }
 
-    //cout << ' ';
-    
-    new_accel = (new_velocity - ego._s_predicted[1]) / duration; //Equation: (v_1 - v_0)/t = acceleration
-    new_position = ego._s_predicted[0] + new_velocity * duration + new_accel * duration * duration / 2.0;
-    return {new_position, new_velocity, new_accel};    
+}
+
+
+vector<double> Behavior::getLaneKinematics(Car& ego, int lane, double duration, bool predicted) {
+    return predicted ? _predicted_kinematics[lane] : _kinematics[lane];
 }
 
 vector<Car> Behavior::keepLaneTrajectory(enum state state, Car& ego, Map * track, double duration) {
     /*
     Generate a keep lane trajectory.
     */
+
     int current_lane = track->getLane(ego._d[0]);
     vector<double> current_lane_kinematics = getLaneKinematics(ego, current_lane, duration);
-    return {Car(-100, ego._s, ego._d), Car(-200, current_lane_kinematics, ego._d)};
+    return {Car(-100, ego._s, ego._d), Car(-200, current_lane_kinematics, {track->getD(current_lane),0,0})};
 }
 
 vector<Car> Behavior::prepLaneChangeTrajectory(enum state state, Car& ego, Map * track, double duration) {
@@ -266,7 +283,8 @@ vector<Car> Behavior::prepLaneChangeTrajectory(enum state state, Car& ego, Map *
     */
 
     int current_lane = track->getLane(ego._d[0]);
-    int new_lane = current_lane + _lane_direction[state];
+    int new_lane = min(track->rightmost_lane, max(track->leftmost_lane, current_lane + _lane_direction[state]));
+    //cout << "lanes:" << current_lane << ":" << new_lane << endl;
 
     vector<double> best_kinematics;
     vector<double> current_lane_kinematics = getLaneKinematics(ego, current_lane, duration);
@@ -287,7 +305,7 @@ vector<Car> Behavior::prepLaneChangeTrajectory(enum state state, Car& ego, Map *
         }
     }
 
-    return {Car(-100, ego._s, ego._d), Car(-200, best_kinematics, ego._d)};
+    return {Car(-100, ego._s, ego._d), Car(-200, best_kinematics, {track->getD(current_lane),0,0})};
 }
 
 vector<Car> Behavior::laneChangeTrajectory(enum state state, Car& ego, Map * track, double duration)
@@ -297,6 +315,7 @@ vector<Car> Behavior::laneChangeTrajectory(enum state state, Car& ego, Map * tra
     */    
     int current_lane = track->getLane(ego._d[0]);
     int new_lane = min(track->rightmost_lane, max(track->leftmost_lane, current_lane + _lane_direction[state]));
+    //cout << "lanes:" << current_lane << ":" << new_lane << endl;
 
     vector<double> new_lane_kinematics = getLaneKinematics(ego, new_lane, duration);
     vector<double> current_lane_kinematics = getLaneKinematics(ego, current_lane, duration);
@@ -308,13 +327,13 @@ vector<Car> Behavior::laneChangeTrajectory(enum state state, Car& ego, Map * tra
 
         Car car_ahead;
         if (carAheadInLane(new_lane, ego, car_ahead)) {
-            if (car_ahead._s_predicted[0] < ego._s_predicted[0] + 30)
+            if (car_ahead._s[0] < (ego._s[0] + _front_buffer) || car_ahead._s_predicted[0] < (ego._s_predicted[0] + _front_buffer))
                 lane_change_safe = false;
         } 
 
         Car car_behind;
         if (carBehindInLane(new_lane, ego, car_behind)) {
-            if (car_behind._s_predicted[0] + 30 > ego._s_predicted[0])
+            if ((car_behind._s[0] + _rear_buffer) > ego._s[0] || (car_behind._s_predicted[0] + _rear_buffer) > ego._s_predicted[0])
                 lane_change_safe = false;
         } 
     }
@@ -322,7 +341,7 @@ vector<Car> Behavior::laneChangeTrajectory(enum state state, Car& ego, Map * tra
     if (lane_change_safe)
         return {Car(-100, ego._s, ego._d), Car(-200, new_lane_kinematics, {track->getD(new_lane), 0, 0})};
     else
-        return {Car(-100, ego._s, ego._d), Car(-200, current_lane_kinematics, ego._d)};
+        return {Car(-100, ego._s, ego._d), Car(-200, current_lane_kinematics, {track->getD(current_lane),0,0})};
 }
 
 
@@ -368,10 +387,10 @@ double Behavior::getEfficiencyCost(enum state state, Car& ego, vector<Car>& traj
 
     switch(state) {
     case PREPARE_CHANGE_LANE_LEFT: 
-        intended_lane = final_lane - 1;
+        intended_lane = min(track->rightmost_lane, max(track->leftmost_lane, final_lane - 1));
         break;
     case PREPARE_CHANGE_LANE_RIGHT: 
-        intended_lane = final_lane + 1;
+        intended_lane = min(track->rightmost_lane, max(track->leftmost_lane, final_lane + 1));
         break;
     default:
         intended_lane = final_lane;
@@ -458,10 +477,10 @@ struct Behavior::target Behavior::chooseNextState(Car& ego, Map * track, double 
 
     vector<enum state> states = successorStates(ego, track);
 
-    //cout << "num states:" << states.size() << ' ';
+    cout << "num states:" << states.size() << ' ';
 
-    //for (int i = 0; i < states.size(); ++i)
-    //    cout << _state_names[states[i]] << ' ';
+    for (int i = 0; i < states.size(); ++i)
+        cout << _state_names[states[i]] << ' ';
 
     cout << endl;
 
@@ -472,8 +491,6 @@ struct Behavior::target Behavior::chooseNextState(Car& ego, Map * track, double 
 
 
     for (int i = 0; i < states.size(); ++i) { 
-        cout << "!";       
-
         vector<Car> trajectory = generateTrajectory(states[i], ego, track, duration);
         trajectories[states[i]] = trajectory;
 
@@ -490,7 +507,6 @@ struct Behavior::target Behavior::chooseNextState(Car& ego, Map * track, double 
             cout << trajectory[0]._s[0] << ':' << trajectory[0]._s[1] << '(' << track->getLane(trajectory[0]._d[0]) << ") => " 
             << trajectory[1]._s[0] << ':' << trajectory[1]._s[1]<< '(' << track->getLane(trajectory[1]._d[0]) << ')';   
         }
-        cout << "*";
         cout << endl;
     }
 
@@ -519,14 +535,7 @@ struct Behavior::target Behavior::generateBehavior(Car& ego, map<int, Car>& cars
     cout << "_state: " << _state_names[_state] << " speed:" << _target.speed << " lane:" << _target.lane << endl;
 
     updateTraffic(ego, cars, track);
-
-    for (int i = 0; i < 3; ++i) {
-        vector<double> lane_s = getLaneKinematics(ego, i, planning_duration);
-        cout << i << ' ';
-        if (_traffic[i].size() > 0 )
-            cout << _traffic[i][0]._s_predicted[1] << ' ';
-        print_vector(lane_s, "lane_s");
-    }
+    updateLaneKinematics(ego, planning_duration);
 
     struct target intended_behavior = chooseNextState(ego, track, planning_duration);
 
