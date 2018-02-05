@@ -46,9 +46,9 @@ void Trajectory::generateTrajectory(vector<double>& s_i, vector<double>& d_i, st
 
     if (too_close) {
         if (_target_behavior.speed > 2)
-        _target_behavior.speed -= 1;
-    } else if (_target_behavior.speed < intended_behavior.speed) {
-        _target_behavior.speed += 1;
+        _target_behavior.speed /= 2;
+    } else {
+        _target_behavior.speed = intended_behavior.speed;
     }
 
 #if 0

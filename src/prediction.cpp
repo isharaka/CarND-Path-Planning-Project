@@ -32,10 +32,10 @@ map<int, const Car> Prediction::predict(Track * track, double duration, const Ca
         double s_prediction = s + s_dot * duration;
         double d_prediction = d + d_dot * duration;
 
-        if (ego._s_predicted[0] > (s_prediction + 0.5*track->max_s))
+        while (ego._s_predicted[0] > (s_prediction + 0.5*track->max_s))
             s_prediction += track->max_s;
 
-        if (ego._s[0] > (s + 0.5*track->max_s))
+        while (ego._s[0] > (s + 0.5*track->max_s))
             s += track->max_s;
 
         cars.insert(make_pair(sensor_fusion[i][0], Car(sensor_fusion[i][0], {s,s_dot,0}, {d,d_dot,0}, duration, {s_prediction,s_dot,0}, {d_prediction,d_dot,0})));
