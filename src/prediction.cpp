@@ -12,9 +12,9 @@ Prediction::Prediction()
 
 }
 
-map<int, Car> Prediction::predict(Track * track, double duration, vector<vector<double>>& sensor_fusion)
+map<int, const Car> Prediction::predict(Track * track, double duration, const Car& ego, vector<vector<double>>& sensor_fusion)
 {
-    map<int, Car> cars;
+    map<int, const Car> cars;
 
     for (int i=0; i < sensor_fusion.size(); i++) {
 
@@ -32,8 +32,13 @@ map<int, Car> Prediction::predict(Track * track, double duration, vector<vector<
         double s_prediction = s + s_dot * duration;
         double d_prediction = d + d_dot * duration;
 
-        Car car(sensor_fusion[i][0], {s,s_dot,0}, {d,d_dot,0}, duration, {s_prediction,s_dot,0}, {d_prediction,d_dot,0});
-        cars[car._id] = car;
+        if (ego._s_predicted[0] > (s_prediction + 0.5*track->max_s))
+            s_prediction += track->max_s;
+
+        if (ego._s[0] > (s + 0.5*track->max_s))
+            s += track->max_s;
+
+        cars.insert(make_pair(sensor_fusion[i][0], Car(sensor_fusion[i][0], {s,s_dot,0}, {d,d_dot,0}, duration, {s_prediction,s_dot,0}, {d_prediction,d_dot,0})));
 
         // cout << "car id:" << cars[car._id]._id << " s dot:" << vx*sxsy[0] + vy*sxsy[1] <<endl;
         // print_vector(cars[car._id]._s_predicted, "car s");

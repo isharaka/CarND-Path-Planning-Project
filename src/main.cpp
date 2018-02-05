@@ -394,8 +394,8 @@ int main() {
             double prediction_horizon_ego = motion->getPreviousPathTravelTime() + trajectory->time_horizon;
             double prediction_horizon_env = motion->getPreviousPathOverlapTime() + trajectory->time_horizon;
 
-            Car ego = prediction->predict(track, prediction_horizon_env, motion->getS(), motion->getD(), trajectory, prediction_horizon_ego);
-            map<int, Car> cars = prediction->predict(track, prediction_horizon_env, sensor_fusion); 
+            const Car ego = prediction->predict(track, prediction_horizon_env, motion->getS(), motion->getD(), trajectory, prediction_horizon_ego);
+            map<int, const Car> cars = prediction->predict(track, prediction_horizon_env, ego, sensor_fusion); 
            
             // BEHAVIOR PLANNINGS
             struct Behavior::target target_behavior = behavior->generateBehavior(ego, cars, track, prediction_horizon_env);
