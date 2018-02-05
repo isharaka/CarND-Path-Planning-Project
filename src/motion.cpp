@@ -163,6 +163,111 @@ void Motion::generateMotion(Trajectory * trajectory, Track * track)
 
 }
 
+void Motion::getMotion(vector<double>& next_x_vals, vector<double>& next_y_vals)
+{
+    next_x_vals = _next_x_vals;
+    next_y_vals = _next_y_vals;
+}
+
+
+double Motion::calculateDerivatives(Track * track)
+{
+    if (_path_overlap < 3) {
+        yaw_i = _car_yaw;
+
+        x_i[0] = _car_x;
+        x_i[1] = _car_speed * cos(yaw_i);
+        x_i[2] = 0;
+
+        y_i[0] = _car_y;
+        y_i[1] = _car_speed * sin(yaw_i);
+        y_i[2] = 0;
+
+        x_i_[0] = _car_x - x_i[1]*DT_MOTION;
+        x_i_[0] = _car_x - cos(yaw_i);
+        x_i_[1] = x_i[1];
+        x_i_[2] = 0;
+
+        y_i_[0] = _car_y - y_i[1]*DT_MOTION;
+        y_i_[0] = _car_y - sin(yaw_i);
+        y_i_[1] = y_i[1];
+        y_i_[2] = 0;
+
+        s_i[0] = _car_s;
+        s_i[1] = _car_speed;
+        s_i[2] = 0;
+
+        d_i[0] = _car_d;
+        d_i[1] = 0;
+        d_i[2] = 0;
+
+        s_i_[0] = _car_s - 1;
+        d_i_[0] = _car_d;
+
+    } else {
+        vector<double> x_i__(3), y_i__(3);
+        vector<double> s_i__(3), d_i__(3);
+
+        x_i[0] = _previous_path_x[_path_overlap-1];
+        y_i[0] = _previous_path_y[_path_overlap-1];
+
+        x_i_[0] = _previous_path_x[_path_overlap-2];
+        y_i_[0] = _previous_path_y[_path_overlap-2];
+
+        x_i__[0] = _previous_path_x[_path_overlap-3];
+        y_i__[0] = _previous_path_y[_path_overlap-3];
+
+
+        x_i[1] = (x_i[0] - x_i_[0]) / DT_MOTION;
+        y_i[1] = (y_i[0] - y_i_[0]) / DT_MOTION;
+
+        x_i_[1] = (x_i_[0] - x_i__[0]) / DT_MOTION;
+        y_i_[1] = (y_i_[0] - y_i__[0]) / DT_MOTION;
+
+        x_i[2] = (x_i[1] - x_i_[1]) / DT_MOTION;
+        y_i[2] = (y_i[1] - y_i_[1]) / DT_MOTION;
+
+        yaw_i = atan2(y_i[0] - y_i_[0], x_i[0] - x_i_[0]);  
+
+
+        s_i[0] = _previous_path_s[_path_overlap-1];
+        d_i[0] = _previous_path_d[_path_overlap-1]; 
+
+        s_i_[0] = _previous_path_s[_path_overlap-2];
+        d_i_[0] = _previous_path_d[_path_overlap-2]; 
+
+        s_i__[0] = _previous_path_s[_path_overlap-3];
+        d_i__[0] = _previous_path_d[_path_overlap-3]; 
+
+        double delta_s = s_i[0] - s_i_[0] + track->max_s;
+
+        while(delta_s > track->max_s)
+            delta_s -= track->max_s;
+
+        s_i[1] = (s_i[0] - s_i_[0]) / DT_MOTION;
+        d_i[1] = (d_i[0] - d_i_[0]) / DT_MOTION;
+
+        s_i_[1] = (s_i_[0] - s_i__[0]) / DT_MOTION;
+        d_i_[1] = (d_i_[0] - d_i__[0]) / DT_MOTION;
+
+        s_i[2] = (s_i[1] - s_i_[1]) / DT_MOTION;
+        d_i[2] = (d_i[1] - d_i_[1]) / DT_MOTION;
+
+    }
+}
+
+double Motion::getPreviousPathTravelTime()
+{
+    return (_path_overlap < 3) ? 0 : ((N_POINTS_MOTION - _previous_path_s.size()) * DT_MOTION);
+}
+
+double Motion::getPreviousPathOverlapTime()
+{
+    return (_path_overlap < 3) ? 0 : (_path_overlap * DT_MOTION);
+}
+
+
+
 void Motion::generateMotion(Trajectory * trajectory, Track * track, int lane, double ref_vel)
 {
     vector<double> ptsx;
@@ -271,107 +376,4 @@ void Motion::generateMotion(Trajectory * trajectory, Track * track, int lane, do
 
     }
 
-}
-
-void Motion::getMotion(vector<double>& next_x_vals, vector<double>& next_y_vals)
-{
-    next_x_vals = _next_x_vals;
-    next_y_vals = _next_y_vals;
-}
-
-
-double Motion::calculateDerivatives(Track * track)
-{
-    if (_path_overlap < 3) {
-        yaw_i = _car_yaw;
-
-        x_i[0] = _car_x;
-        x_i[1] = _car_speed * cos(yaw_i);
-        x_i[2] = 0;
-
-        y_i[0] = _car_y;
-        y_i[1] = _car_speed * sin(yaw_i);
-        y_i[2] = 0;
-
-        x_i_[0] = _car_x - x_i[1]*DT_MOTION;
-        x_i_[0] = _car_x - cos(yaw_i);
-        x_i_[1] = x_i[1];
-        x_i_[2] = 0;
-
-        y_i_[0] = _car_y - y_i[1]*DT_MOTION;
-        y_i_[0] = _car_y - sin(yaw_i);
-        y_i_[1] = y_i[1];
-        y_i_[2] = 0;
-
-        s_i[0] = _car_s;
-        s_i[1] = _car_speed;
-        s_i[2] = 0;
-
-        d_i[0] = _car_d;
-        d_i[1] = 0;
-        d_i[2] = 0;
-
-        s_i_[0] = _car_s - 1;
-        d_i_[0] = _car_d;
-
-    } else {
-        vector<double> x_i__(3), y_i__(3);
-        vector<double> s_i__(3), d_i__(3);
-
-        x_i[0] = _previous_path_x[_path_overlap-1];
-        y_i[0] = _previous_path_y[_path_overlap-1];
-
-        x_i_[0] = _previous_path_x[_path_overlap-2];
-        y_i_[0] = _previous_path_y[_path_overlap-2];
-
-        x_i__[0] = _previous_path_x[_path_overlap-3];
-        y_i__[0] = _previous_path_y[_path_overlap-3];
-
-
-        x_i[1] = (x_i[0] - x_i_[0]) / DT_MOTION;
-        y_i[1] = (y_i[0] - y_i_[0]) / DT_MOTION;
-
-        x_i_[1] = (x_i_[0] - x_i__[0]) / DT_MOTION;
-        y_i_[1] = (y_i_[0] - y_i__[0]) / DT_MOTION;
-
-        x_i[2] = (x_i[1] - x_i_[1]) / DT_MOTION;
-        y_i[2] = (y_i[1] - y_i_[1]) / DT_MOTION;
-
-        yaw_i = atan2(y_i[0] - y_i_[0], x_i[0] - x_i_[0]);  
-
-
-        s_i[0] = _previous_path_s[_path_overlap-1];
-        d_i[0] = _previous_path_d[_path_overlap-1]; 
-
-        s_i_[0] = _previous_path_s[_path_overlap-2];
-        d_i_[0] = _previous_path_d[_path_overlap-2]; 
-
-        s_i__[0] = _previous_path_s[_path_overlap-3];
-        d_i__[0] = _previous_path_d[_path_overlap-3]; 
-
-        double delta_s = s_i[0] - s_i_[0] + track->max_s;
-
-        while(delta_s > track->max_s)
-            delta_s -= track->max_s;
-
-        s_i[1] = (s_i[0] - s_i_[0]) / DT_MOTION;
-        d_i[1] = (d_i[0] - d_i_[0]) / DT_MOTION;
-
-        s_i_[1] = (s_i_[0] - s_i__[0]) / DT_MOTION;
-        d_i_[1] = (d_i_[0] - d_i__[0]) / DT_MOTION;
-
-        s_i[2] = (s_i[1] - s_i_[1]) / DT_MOTION;
-        d_i[2] = (d_i[1] - d_i_[1]) / DT_MOTION;
-
-    }
-}
-
-double Motion::getPreviousPathTravelTime()
-{
-    return (_path_overlap < 3) ? 0 : ((N_POINTS_MOTION - _previous_path_s.size()) * DT_MOTION);
-}
-
-double Motion::getPreviousPathOverlapTime()
-{
-    return (_path_overlap < 3) ? 0 : (_path_overlap * DT_MOTION);
 }

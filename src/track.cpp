@@ -61,7 +61,7 @@ double Track::distance(double x1, double y1, double x2, double y2)
     return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
 }
 
-
+/* Set local fine waypoints and fit splines to be used by more accurate co-ordinate transformation functions */
 void Track::setLocality(int next_wp)
 {
     enum {
@@ -77,6 +77,7 @@ void Track::setLocality(int next_wp)
 
     double _s = 0.0;
 
+    /* Collect waypoints near the given way point */
     _first_local_wp = (next_wp + num_waypoints - WAYPOINTS_SPAN_BACKWARD) % num_waypoints;
     _last_local_wp = (next_wp + WAYPOINTS_SPAN_FORWARD) % num_waypoints;
 
@@ -88,6 +89,7 @@ void Track::setLocality(int next_wp)
 
         double map_s = _map_waypoints_s[wp];
 
+        /* correct s for wrap around the track */
         if (map_s < _s) {
             _local_s_correction = max_s;
             _local_s_transition = map_s;
@@ -103,11 +105,14 @@ void Track::setLocality(int next_wp)
     }
 
 
+    /* fit splines for x,y,dx,dy against s */
     _splines->x.set_points(waypoints_s, waypoints_x);
     _splines->y.set_points(waypoints_s, waypoints_y);
     _splines->dx.set_points(waypoints_s, waypoints_dx);
     _splines->dy.set_points(waypoints_s, waypoints_dy);
 
+
+    /* generate finer waypoints in the visinity */
     const double s_delta = 0.5;
 
     _local_waypoints_s.clear();
@@ -154,6 +159,7 @@ void Track::setLocality(double s)
     setLocality(next_wp);
 }
 
+/* More accurate transformation from XY to Frenet using interpolated local waypoints */
 vector<double> Track::getFrenet(double x, double y, double theta, bool fine, bool localize)
 {
     if (fine) {
@@ -173,7 +179,7 @@ vector<double> Track::getFrenet(double x, double y, double theta, bool fine, boo
     }
 }
 
-
+/* More accurate transformation from Frenet to XY using splines of interpolated local waypoints */
 vector<double> Track::getXY(double s, double d, bool fine, bool localize)
 {
     while (s >= max_s)
@@ -193,7 +199,7 @@ vector<double> Track::getXY(double s, double d, bool fine, bool localize)
     }
 }
 
-
+/* More accurate unit normal parallel to d vector using splines of interpolated local waypoints */
 vector<double> Track::getDxDy(double s, bool fine, bool localize)
 {
     while (s >= max_s)
@@ -206,6 +212,7 @@ vector<double> Track::getDxDy(double s, bool fine, bool localize)
         vector<double> dxdy = {_splines->dx(s), _splines->dy(s)};
         double magnitude = sqrt(dxdy[0]*dxdy[0] + dxdy[1]*dxdy[1]);
 
+        // normalization
         dxdy[0] /= magnitude;
         dxdy[1] /= magnitude;
 
@@ -216,13 +223,15 @@ vector<double> Track::getDxDy(double s, bool fine, bool localize)
     }
 }
 
+/* More accurate unit normal perpendicular to d vector using splines of interpolated local waypoints */
 vector<double> Track::getSxSy(double s, bool fine, bool localize)
 {
     vector<double> dxdy = getDxDy(s, fine, localize);
-    return {-dxdy[1], dxdy[0]};
+    return {-dxdy[1], dxdy[0]}; // rotate normal d vector by 90 degrees
 }
 
 
+/* Original co-ordinate transfer functions from starte code */
 
 int Track::ClosestWaypoint(double x, double y, const vector<double> &maps_x, const vector<double> &maps_y)
 {
