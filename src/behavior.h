@@ -15,6 +15,7 @@ public:
     struct target {
         int lane;
         double speed;
+        bool too_close;
     };
 
     struct target generateBehavior(Car& ego, map<int, Car>& cars, Map * track, double planning_duration);
@@ -34,7 +35,6 @@ private:
         NUM_STATES
     };
 
-    struct target _target;
     enum state _state;
 
     vector<vector<Car>> _traffic;

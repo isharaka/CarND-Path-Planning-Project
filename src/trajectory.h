@@ -14,7 +14,7 @@ public:
 
     static const double time_horizon;
 
-    void generateTrajectory(vector<double>& s_i, vector<double>& d_i, struct Behavior::target& target_behavior, Map * track);
+    void generateTrajectory(vector<double>& s_i, vector<double>& d_i, struct Behavior::target& intended_behavior, Map * track);
 
 
     vector<double> s(double t);
@@ -25,6 +25,8 @@ public:
 private:
     vector<double> _s_coeff;
     vector<double> _d_coeff;
+
+    struct Behavior::target _target_behavior;
 
     void generateCVTrajectory(vector<double>& s_i, vector<double>& d_i, vector<double>& s_f, vector<double>& d_f, double duration);
     void generateCATrajectory(vector<double>& s_i, vector<double>& d_i, vector<double>& s_f, vector<double>& d_f, double duration);

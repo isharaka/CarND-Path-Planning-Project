@@ -16,7 +16,7 @@ using namespace std;
 
 const double Trajectory::time_horizon = 3.0;
 
-Trajectory::Trajectory()
+Trajectory::Trajectory():_target_behavior{1,20.0,false}
 {
 
 }
@@ -33,27 +33,33 @@ vector<double> Trajectory::d(double t)
     return {polyeval(_d_coeff, t), 0, 0};
 }
 
-void Trajectory::generateTrajectory(vector<double>& s_i, vector<double>& d_i, struct Behavior::target& target_behavior, Map * track)
+void Trajectory::generateTrajectory(vector<double>& s_i, vector<double>& d_i, struct Behavior::target& intended_behavior, Map * track)
 {
+
+    _target_behavior.lane = intended_behavior.lane;
+
+    if (intended_behavior.too_close) {
+        if (_target_behavior.speed > 2)
+        _target_behavior.speed -= 1;
+    } else if (_target_behavior.speed < intended_behavior.speed) {
+        _target_behavior.speed += 1;
+    }
+
 #if 0
-        vector<double> s_f = { s_i[0] + target_behavior.speed * time_horizon, target_behavior.speed, 0};
-        vector<double> d_f = { track->getD(target_behavior.lane), 0, 0};
+    vector<double> s_f = { s_i[0] + _target_behavior.speed * time_horizon, _target_behavior.speed, 0};
+    vector<double> d_f = { track->getD(_target_behavior.lane), 0, 0};
 
-        generateCVTrajectory(s_i, d_i, s_f, d_f, time_horizon);
+    generateCVTrajectory(s_i, d_i, s_f, d_f, time_horizon);
 #else
-        vector<double> s_f = { s_i[0] + (s_i[1] + target_behavior.speed) * time_horizon / 2, target_behavior.speed, 0};
-        vector<double> d_f = { track->getD(target_behavior.lane), 0, 0};
+    vector<double> s_f = { s_i[0] + (s_i[1] + _target_behavior.speed) * time_horizon / 2, _target_behavior.speed, 0};
+    vector<double> d_f = { track->getD(_target_behavior.lane), 0, 0};
 
-        print_vector(s_i, "s_i");
-        print_vector(s_f, "s_f");
-        print_vector(d_i, "d_i");
-        print_vector(d_f, "d_f");
+    print_vector(s_i, "s_i");
+    print_vector(s_f, "s_f");
+    print_vector(d_i, "d_i");
+    print_vector(d_f, "d_f");
 
-        //print_vector(x_i, "x_i");
-        //print_vector(y_i, "y_i");
-
-        generateJMTrajectory(s_i, d_i, s_f, d_f, time_horizon);
-
+    generateJMTrajectory(s_i, d_i, s_f, d_f, time_horizon);
 #endif   
 }
 

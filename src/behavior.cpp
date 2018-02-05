@@ -17,7 +17,7 @@ map<enum Behavior::state, int> Behavior::_lane_direction = {{Behavior::KEEP_LANE
                                                         {Behavior::PREPARE_CHANGE_LANE_RIGHT, 1}, 
                                                         {Behavior::CHANGE_LANE_RIGHT, 1}};
 
-Behavior::Behavior():_target{1,20.0}, _traffic(3), _traffic_predicted(3), _kinematics(3), _predicted_kinematics(3), _state(KEEP_LANE)
+Behavior::Behavior():_traffic(3), _traffic_predicted(3), _kinematics(3), _predicted_kinematics(3), _state(KEEP_LANE)
 {}
 
 struct compare_s
@@ -511,18 +511,14 @@ struct Behavior::target Behavior::chooseNextState(Car& ego, Map * track, double 
 
     vector<enum state> states = successorStates(ego, track);
 
-    cout << "num states:" << states.size() << ' ';
-
+    cout << "_state: " << _state_names[_state] << "num states:" << states.size() << ' ';
     for (int i = 0; i < states.size(); ++i)
         cout << _state_names[states[i]] << ' ';
-
     cout << endl;
 
     double best_cost = 1.0;
     enum state best_state;
-
     map<enum state, vector<Car>> trajectories;
-
 
     for (int i = 0; i < states.size(); ++i) { 
         vector<Car> trajectory = generateTrajectory(states[i], ego, track, duration);
@@ -536,7 +532,6 @@ struct Behavior::target Behavior::chooseNextState(Car& ego, Map * track, double 
         }
 
         cout << _state_names[states[i]] << "[" << cost << "] ";
-
         if (trajectory.size() > 1) {
             cout << trajectory[0]._s[0] << ':' << trajectory[0]._s[1] << '(' << track->getLane(trajectory[0]._d[0]) << ") => " 
             << trajectory[1]._s[0] << ':' << trajectory[1]._s[1]<< '(' << track->getLane(trajectory[1]._d[0]) << ')';   
@@ -544,14 +539,10 @@ struct Behavior::target Behavior::chooseNextState(Car& ego, Map * track, double 
         cout << endl;
     }
 
-    if (best_cost < 1)
-        _state = best_state;
-    else
-        _state = KEEP_LANE;
-
+    _state = (best_cost < 1.0) ? best_state : KEEP_LANE;
     //_state = KEEP_LANE;
 
-    struct target intended_target = {track->getLane(trajectories[_state][1]._d[0]), trajectories[_state][1]._s[1]};
+    struct target intended_target = {track->getLane(trajectories[_state][1]._d[0]), trajectories[_state][1]._s[1], false};
     cout << "_state: " << _state_names[_state] << " speed:" << intended_target.speed << " lane:" << intended_target.lane << endl;
 
     return intended_target;
@@ -561,42 +552,21 @@ struct Behavior::target Behavior::chooseNextState(Car& ego, Map * track, double 
 
 struct Behavior::target Behavior::generateBehavior(Car& ego, map<int, Car>& cars, Map * track, double planning_duration)
 {
-    bool too_close = false;  
     int ego_lane = track->getLane(ego._d_predicted[0]); 
     double ego_predicted_s = ego._s_predicted[0];
     double ego_s = ego._s[0];
 
-    cout << "_state: " << _state_names[_state] << " speed:" << _target.speed << " lane:" << _target.lane << endl;
-
     updateTraffic(ego, cars, track);
     updateLaneKinematics(ego, planning_duration);
 
-    struct target intended_behavior = chooseNextState(ego, track, planning_duration);
-
-    double intended_speed;
-    
+    struct target intended_behavior = chooseNextState(ego, track, planning_duration);    
 
     if (_traffic_predicted[ego_lane].size() > 0) {
         if ((ego_s < _traffic_predicted[ego_lane][0]._s[0]) && (_traffic_predicted[ego_lane][0]._s_predicted[0] - ego_predicted_s < 30)) {
-            too_close = true;
-            cout << "C";
-            intended_speed = _traffic_predicted[ego_lane][0]._s_predicted[1];
-        } else {
-            intended_speed = intended_behavior.speed;
-        }
-    } else {
-        intended_speed = intended_behavior.speed;
+            intended_behavior.too_close = true;
+            intended_behavior.speed = _traffic_predicted[ego_lane][0]._s_predicted[1];
+        } 
     }
 
-    _target.lane = intended_behavior.lane;
-
-
-    if (too_close) {
-        if (_target.speed > 2)
-        _target.speed -= 1;
-    } else if (_target.speed < intended_speed) {
-        _target.speed += 1;
-    }
-
-    return _target;
+    return intended_behavior;
 }
