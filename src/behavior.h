@@ -18,7 +18,7 @@ public:
         bool too_close;
     };
 
-    struct target generateBehavior(Car& ego, map<int, Car>& cars, Map * track, double planning_duration);
+    struct target generateBehavior(Car& ego, map<int, Car>& cars, Track * track, double planning_duration);
 
     static const double speed_limit;
     static const double max_acceleration;
@@ -43,7 +43,7 @@ private:
     vector<vector<double>> _kinematics;
     vector<vector<double>> _predicted_kinematics;
 
-    void updateTraffic(Car& ego, map<int, Car>& cars, Map * track);
+    void updateTraffic(Car& ego, map<int, Car>& cars, Track * track);
     bool carsInLane(int lane, bool predicted = true);
     bool carAheadInLane(int lane, Car& ego, Car& other, bool predicted = true);
     bool carBehindInLane(int lane, Car& ego, Car& other, bool predicted = true);
@@ -52,17 +52,17 @@ private:
     void updateLaneKinematics(Car& ego, double duration, bool predicted = true);
     vector<double> getLaneKinematics(Car& ego, int lane, double duration, bool predicted = true);
 
-    vector<Car> keepLaneTrajectory(enum state state, Car& ego, Map * track, double duration);
-    vector<Car> prepLaneChangeTrajectory(enum state state, Car& ego, Map * track, double duration);
-    vector<Car> laneChangeTrajectory(enum state state, Car& ego, Map * track, double duration);
-    vector<Car> generateTrajectory(enum state state, Car& ego, Map * track, double duration);
+    vector<Car> keepLaneTrajectory(enum state state, Car& ego, Track * track, double duration);
+    vector<Car> prepLaneChangeTrajectory(enum state state, Car& ego, Track * track, double duration);
+    vector<Car> laneChangeTrajectory(enum state state, Car& ego, Track * track, double duration);
+    vector<Car> generateTrajectory(enum state state, Car& ego, Track * track, double duration);
 
-    double getOuterLaneCost(enum state state, Car& ego, vector<Car>& trajectory, Map * track);
-    double getEfficiencyCost(enum state state, Car& ego, vector<Car>& trajectory, Map * track);
-    double getCost(enum state state, Car& ego, vector<Car>& trajectory, Map * track);
+    double getOuterLaneCost(enum state state, Car& ego, vector<Car>& trajectory, Track * track);
+    double getEfficiencyCost(enum state state, Car& ego, vector<Car>& trajectory, Track * track);
+    double getCost(enum state state, Car& ego, vector<Car>& trajectory, Track * track);
 
-    vector<enum state> successorStates(Car& ego, Map * track);
-    struct target chooseNextState(Car& ego, Map * track, double duration);
+    vector<enum state> successorStates(Car& ego, Track * track);
+    struct target chooseNextState(Car& ego, Track * track, double duration);
 
     static const string _state_names[NUM_STATES];
     static map<enum state, int> _lane_direction;

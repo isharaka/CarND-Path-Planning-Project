@@ -12,21 +12,21 @@
 
 using namespace std;
 
-const double Map::max_s = 6945.55405474;
-const double Map::lane_width = 4.0;
-const int Map::leftmost_lane = 0;
-const int Map::rightmost_lane = 2;
+const double Track::max_s = 6945.55405474;
+const double Track::lane_width = 4.0;
+const int Track::leftmost_lane = 0;
+const int Track::rightmost_lane = 2;
 
 constexpr double pi() { return M_PI; }
 
-struct Map::splines {
+struct Track::splines {
     tk::spline x;
     tk::spline y;
     tk::spline dx;
     tk::spline dy;
 };
 
-Map::Map()
+Track::Track()
 {
     string map_file_ = "../data/highway_map.csv";
 
@@ -56,13 +56,13 @@ Map::Map()
 
 }
 
-double Map::distance(double x1, double y1, double x2, double y2)
+double Track::distance(double x1, double y1, double x2, double y2)
 {
     return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
 }
 
 
-void Map::setLocality(int next_wp)
+void Track::setLocality(int next_wp)
 {
     enum {
         WAYPOINTS_SPAN_FORWARD = 5,
@@ -126,12 +126,12 @@ void Map::setLocality(int next_wp)
 }
 
 
-double Map::getD(int lane)
+double Track::getD(int lane)
 {
     return lane*lane_width + lane_width/2;
 }
 
-int Map::getLane(double d)
+int Track::getLane(double d)
 {
     double _d = d/lane_width;
     double lane;
@@ -142,19 +142,19 @@ int Map::getLane(double d)
 }
 
 
-void Map::setLocality(double x, double y, double theta)
+void Track::setLocality(double x, double y, double theta)
 {
     int next_wp = NextWaypoint(x,y, theta, _map_waypoints_x, _map_waypoints_y);
     setLocality(next_wp);
 }
 
-void Map::setLocality(double s)
+void Track::setLocality(double s)
 {
     int next_wp = NextWaypoint(s, _map_waypoints_s);
     setLocality(next_wp);
 }
 
-vector<double> Map::getFrenet(double x, double y, double theta, bool fine, bool localize)
+vector<double> Track::getFrenet(double x, double y, double theta, bool fine, bool localize)
 {
     if (fine) {
         if (localize)
@@ -174,7 +174,7 @@ vector<double> Map::getFrenet(double x, double y, double theta, bool fine, bool 
 }
 
 
-vector<double> Map::getXY(double s, double d, bool fine, bool localize)
+vector<double> Track::getXY(double s, double d, bool fine, bool localize)
 {
     while (s >= max_s)
         s -= max_s;
@@ -194,7 +194,7 @@ vector<double> Map::getXY(double s, double d, bool fine, bool localize)
 }
 
 
-vector<double> Map::getDxDy(double s, bool fine, bool localize)
+vector<double> Track::getDxDy(double s, bool fine, bool localize)
 {
     while (s >= max_s)
         s -= max_s;
@@ -216,7 +216,7 @@ vector<double> Map::getDxDy(double s, bool fine, bool localize)
     }
 }
 
-vector<double> Map::getSxSy(double s, bool fine, bool localize)
+vector<double> Track::getSxSy(double s, bool fine, bool localize)
 {
     vector<double> dxdy = getDxDy(s, fine, localize);
     return {-dxdy[1], dxdy[0]};
@@ -224,7 +224,7 @@ vector<double> Map::getSxSy(double s, bool fine, bool localize)
 
 
 
-int Map::ClosestWaypoint(double x, double y, const vector<double> &maps_x, const vector<double> &maps_y)
+int Track::ClosestWaypoint(double x, double y, const vector<double> &maps_x, const vector<double> &maps_y)
 {
     double closestLen = 100000; //large number
     int closestWaypoint = 0;
@@ -245,7 +245,7 @@ int Map::ClosestWaypoint(double x, double y, const vector<double> &maps_x, const
     return closestWaypoint;
 }
 
-int Map::NextWaypoint(double s, const vector<double> &maps_s)
+int Track::NextWaypoint(double s, const vector<double> &maps_s)
 {
   int prev_wp = -1;
 
@@ -257,7 +257,7 @@ int Map::NextWaypoint(double s, const vector<double> &maps_s)
   return (prev_wp+1)%maps_s.size();
 }
 
-int Map::NextWaypoint(double x, double y, double theta, const vector<double> &maps_x, const vector<double> &maps_y)
+int Track::NextWaypoint(double x, double y, double theta, const vector<double> &maps_x, const vector<double> &maps_y)
 {
     int closestWaypoint = ClosestWaypoint(x,y,maps_x,maps_y);
 
@@ -283,7 +283,7 @@ int Map::NextWaypoint(double x, double y, double theta, const vector<double> &ma
 
 
 
-vector<double> Map::getFrenet(double x, double y, double theta, const vector<double> &maps_x, const vector<double> &maps_y)
+vector<double> Track::getFrenet(double x, double y, double theta, const vector<double> &maps_x, const vector<double> &maps_y)
 {
     int next_wp = NextWaypoint(x,y, theta, maps_x,maps_y);
 
@@ -331,7 +331,7 @@ vector<double> Map::getFrenet(double x, double y, double theta, const vector<dou
 }
 
 
-vector<double> Map::getXY(double s, double d, const vector<double> &maps_s, const vector<double> &maps_x, const vector<double> &maps_y)
+vector<double> Track::getXY(double s, double d, const vector<double> &maps_s, const vector<double> &maps_x, const vector<double> &maps_y)
 {
     int prev_wp = -1;
 

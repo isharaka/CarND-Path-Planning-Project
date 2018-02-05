@@ -33,7 +33,7 @@ vector<double> Trajectory::d(double t)
     return {polyeval(_d_coeff, t), 0, 0};
 }
 
-void Trajectory::generateTrajectory(vector<double>& s_i, vector<double>& d_i, struct Behavior::target& intended_behavior, Map * track)
+void Trajectory::generateTrajectory(vector<double>& s_i, vector<double>& d_i, struct Behavior::target& intended_behavior, Track * track)
 {
 
     _target_behavior.lane = intended_behavior.lane;

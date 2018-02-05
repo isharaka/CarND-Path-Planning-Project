@@ -230,7 +230,7 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 
 
 
-  Map * track;
+  Track * track;
   Trajectory * trajectory;
   Motion * motion;
   Prediction * prediction;
@@ -276,7 +276,7 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
-  track = new Map();
+  track = new Track();
   trajectory = new Trajectory();
   motion = new Motion();
   prediction = new Prediction();

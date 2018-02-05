@@ -12,7 +12,7 @@ Prediction::Prediction()
 
 }
 
-map<int, Car> Prediction::predict(Map * track, double duration, vector<vector<double>>& sensor_fusion)
+map<int, Car> Prediction::predict(Track * track, double duration, vector<vector<double>>& sensor_fusion)
 {
     map<int, Car> cars;
 
@@ -43,7 +43,7 @@ map<int, Car> Prediction::predict(Map * track, double duration, vector<vector<do
     return cars;
 }
 
-Car Prediction::predict(Map * track, double duration, vector<double> s, vector<double> d, Trajectory* trajectory, double t)
+Car Prediction::predict(Track * track, double duration, vector<double> s, vector<double> d, Trajectory* trajectory, double t)
 {
    return Car(-1, s, d, duration, trajectory->s(t), trajectory->d(t)); 
 }

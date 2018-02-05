@@ -11,7 +11,7 @@ public:
     Motion();
 
     void telemetry(
-            Map * track,
+            Track * track,
             double car_x,
             double car_y,
             double car_s,
@@ -24,8 +24,8 @@ public:
             double end_path_d
         );
 
-    void generateMotion(Trajectory * trajectory, Map * track);
-    void generateMotion(Trajectory * trajectory, Map * track, int lane, double ref_vel);
+    void generateMotion(Trajectory * trajectory, Track * track);
+    void generateMotion(Trajectory * trajectory, Track * track, int lane, double ref_vel);
 
     void getMotion(vector<double>& next_x_vals, vector<double>& next_y_vals);
 
@@ -45,7 +45,7 @@ public:
 
 
 private:
-    double calculateDerivatives(Map * track);
+    double calculateDerivatives(Track * track);
 
         double _car_x;
         double _car_y;

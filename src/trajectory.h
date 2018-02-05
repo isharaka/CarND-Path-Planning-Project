@@ -14,7 +14,7 @@ public:
 
     static const double time_horizon;
 
-    void generateTrajectory(vector<double>& s_i, vector<double>& d_i, struct Behavior::target& intended_behavior, Map * track);
+    void generateTrajectory(vector<double>& s_i, vector<double>& d_i, struct Behavior::target& intended_behavior, Track * track);
 
 
     vector<double> s(double t);

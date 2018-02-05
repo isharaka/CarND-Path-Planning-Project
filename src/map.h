@@ -16,10 +16,10 @@
 
 using namespace std;
 
-class Map
+class Track
 {
 public:
-	Map();
+	Track();
 
     static const double max_s;
     static const double lane_width;

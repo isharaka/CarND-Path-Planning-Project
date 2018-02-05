@@ -26,7 +26,7 @@ Motion::Motion():
 }
 
 void Motion::telemetry(
-    Map * track,
+    Track * track,
     double car_x,
     double car_y,
     double car_s,
@@ -79,7 +79,7 @@ void Motion::telemetry(
 
 }
 
-void Motion::generateMotion(Trajectory * trajectory, Map * track)
+void Motion::generateMotion(Trajectory * trajectory, Track * track)
 {
     vector<double> ptsx;
     vector<double> ptsy;
@@ -163,7 +163,7 @@ void Motion::generateMotion(Trajectory * trajectory, Map * track)
 
 }
 
-void Motion::generateMotion(Trajectory * trajectory, Map * track, int lane, double ref_vel)
+void Motion::generateMotion(Trajectory * trajectory, Track * track, int lane, double ref_vel)
 {
     vector<double> ptsx;
     vector<double> ptsy;
@@ -280,7 +280,7 @@ void Motion::getMotion(vector<double>& next_x_vals, vector<double>& next_y_vals)
 }
 
 
-double Motion::calculateDerivatives(Map * track)
+double Motion::calculateDerivatives(Track * track)
 {
     if (_path_overlap < 3) {
         yaw_i = _car_yaw;
