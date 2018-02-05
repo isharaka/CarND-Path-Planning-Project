@@ -1,5 +1,148 @@
 # CarND-Path-Planning-Project
 Self-Driving Car Engineer Nanodegree Program
+
+### Design
+
+The top level design can be followed by the following snippet in main.cpp 
+
+            // SETUP TRACK
+            track->setLocality(car_s);
+
+            // MOTION & TELEMETRY
+            motion->telemetry(track, car_x, car_y, car_s, car_d, deg2rad(car_yaw), car_speed * 0.44704, previous_path_x, previous_path_y, end_path_s, end_path_d);
+
+            vector<double> s_i = motion->getInitS();
+            vector<double> d_i = motion->getInitD();
+
+            // PREDICTION
+            double prediction_horizon_ego = motion->getPreviousPathTravelTime() + trajectory->time_horizon;
+            double prediction_horizon_env = motion->getPreviousPathOverlapTime() + trajectory->time_horizon;
+
+            const Car ego = prediction->predict(track, prediction_horizon_env, motion->getS(), motion->getD(), trajectory, prediction_horizon_ego);
+            map<int, const Car> cars = prediction->predict(track, prediction_horizon_env, ego, sensor_fusion); 
+           
+            // BEHAVIOR PLANNING
+            struct Behavior::target target_behavior = behavior->generateBehavior(ego, cars, track, prediction_horizon_env);
+
+            // TRAJECTORY GENERATION
+            trajectory->generateTrajectory(s_i, d_i, target_behavior, track, cars);
+
+            // MOTION GENERATION
+            motion->generateMotion(trajectory, track);
+
+#### Track
+
+- In order to get more accurate track data, splines are fitted to smaller portion of the track around the cars position.
+
+*input from:* simulator, map data
+*outputs to:* Prediction, Behavior, Trajectory, Motion
+*files:* track.cpp track.h
+
+	/* Set local fine waypoints and fit splines to be used by more accurate co-ordinate transformation functions */
+	void Track::setLocality(int next_wp)
+	
+
+#### Telemetry
+
+- I use s and d path points used to generate the x & y points in the last iteration to construct the previous path in terms of s & d (simulator only provide this in terms of x &y)
+- first & second order derivative of s & d are calculated using the previous path points created as above
+
+*input from:* simulator, Track
+*outputs to:* Prediction, Behavior, Motion
+*files: *motion.cpp motion.h
+
+	/* Use previously generated s and d path points to constrcute previus path in terms of s & d */
+    for (int i = N_POINTS_MOTION - _previous_path_x.size(); i < N_POINTS_MOTION; ++i) {
+      _previous_path_s.push_back(_next_s_vals[i]);
+      _previous_path_d.push_back(_next_d_vals[i]);
+    }
+
+#### Prediction
+
+- The location of other cars on track are predicted assuming constant velocity
+- The location of the ego vehicle is predicted using the trajectory used in the previous iteration
+
+*input from:* Track, Motion, Trajectory
+*outputs to:* Prediction, Behavior, Motion
+*files: *prediction.cpp prediction.h
+
+	    vector<double> dxdy = track->getDxDy(s, true, true);
+        vector<double> sxsy = track->getSxSy(s, true);
+
+        double s_dot = vx*sxsy[0] + vy*sxsy[1];
+        double d_dot = vx*dxdy[0] + vy*dxdy[1];
+
+        double s_prediction = s + s_dot * duration;
+        double d_prediction = d + d_dot * duration;
+
+#### Behavior Planning
+
+- Traffic is sorted in to lanes in order to detect cars ahead and behind the ego vehicle
+- Optimal locations and speeds for each lane is calculated based on lane traffic and ego vehicle position
+- A finite state machine is used with 5 states
+	- Keep Lane
+	- Prepare to Change Lane Left/Right
+	- Change Lane Left/Right
+- A coarse trajectory is caclulated for each available state and a cost function is used to select the best state. The cost functin is a weighted combination of the following 
+	- efficiency cost to penalise slow speed and favour changing to faster lanes
+	- outer lane cost to penalising extreme lanes to favour staying in the middle lane
+- Behavior module also detects the lead car and passes this information to Trajectory planner
+
+*input from:* Track, Motion, Track, Prediction
+*outputs to: *Trajectory
+*files:* behavior.cpp behavior.h
+
+	struct Behavior::target Behavior::generateBehavior(const Car& ego, const map<int, const Car>& cars, Track * track, double planning_duration)
+	{
+	    int ego_lane = track->getLane(ego._d_predicted[0]); 
+	    double ego_predicted_s = ego._s_predicted[0];
+	    double ego_s = ego._s[0];
+	
+	    updateTraffic(ego, cars, track);
+	    updateLaneKinematics(ego, planning_duration);
+	
+	    struct target intended_behavior = chooseNextState(ego, track, planning_duration);    
+	    intended_behavior.lead_car = -1;
+	
+	    if (_traffic_predicted[ego_lane].size() > 0) {
+	        if ((ego_s < _traffic_predicted[ego_lane][0]._s[0]) && (_traffic_predicted[ego_lane][0]._s_predicted[0] - ego_predicted_s < 30)) {
+	            intended_behavior.lead_car = _traffic_predicted[ego_lane][0]._id;
+	        } 
+	    }
+	
+	    return intended_behavior;
+	}
+
+#### Trajectory Generation
+- Uses the intended speed and lane from Behavior module to calculate a Jerk Minimization trajectory
+- Uses lead car information from Behavior module along with data from Prediction module to adjst target speed to avoid collision
+
+*input from: *Track, Motion, Behavior, Prediction
+*outputs to:* Prediction (next iteration), Motion
+*files:* trajectory.cpp trajectory.h
+
+#### Motion Generation
+- Samples the genrated trajectory at intervals in time and converts to XY co-ordinates
+- A smooth motion is generated by fitting splines to XY anchor points against S samples
+- Continuity is ensured by using part of the previous path
+
+*input from:* Track, Trajectory
+*outputs to: *simulator, Motion (next iteration)
+*files: *motion.cpp motion.h
+
+#### Result
+
+Lane following
+![output](./follow_lane.png)
+
+Following lead car
+![lead](./follow_vehicle.png)
+
+Change lane to the left
+![left](./change_lane_left.png)
+
+Change lane to the right
+![right](./change_lane_right.png)
    
 ### Simulator.
 You can download the Term3 Simulator which contains the Path Planning Project from the [releases tab (https://github.com/udacity/self-driving-car-sim/releases).
