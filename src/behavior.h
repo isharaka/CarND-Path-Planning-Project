@@ -15,7 +15,7 @@ public:
     struct target {
         int lane;
         double speed;
-        bool too_close;
+        int lead_car;
     };
 
     struct target generateBehavior(const Car& ego, const map<int, const Car>& cars, Track * track, double planning_duration);

@@ -16,7 +16,7 @@ using namespace std;
 
 const double Trajectory::time_horizon = 3.0;
 
-Trajectory::Trajectory():_target_behavior{1,20.0,false}
+Trajectory::Trajectory():_target_behavior{1,20.0,-1}
 {
 
 }
@@ -33,12 +33,18 @@ vector<double> Trajectory::d(double t)
     return {polyeval(_d_coeff, t), 0, 0};
 }
 
-void Trajectory::generateTrajectory(vector<double>& s_i, vector<double>& d_i, struct Behavior::target& intended_behavior, Track * track)
+void Trajectory::generateTrajectory(vector<double>& s_i, vector<double>& d_i, struct Behavior::target& intended_behavior, Track * track, const map<int, const Car>& cars)
 {
+    bool too_close;
+    
+    if (intended_behavior.lead_car != -1) {
+        too_close = true;
+        intended_behavior.speed = cars.find(intended_behavior.lead_car)->second._s_predicted[1];
+    }
 
     _target_behavior.lane = intended_behavior.lane;
 
-    if (intended_behavior.too_close) {
+    if (too_close) {
         if (_target_behavior.speed > 2)
         _target_behavior.speed -= 1;
     } else if (_target_behavior.speed < intended_behavior.speed) {

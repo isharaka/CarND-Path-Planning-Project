@@ -534,7 +534,7 @@ struct Behavior::target Behavior::chooseNextState(const Car& ego, Track * track,
     _state = (best_cost < 1.0) ? best_state : KEEP_LANE;
     //_state = KEEP_LANE;
 
-    struct target intended_target = {track->getLane(trajectories[_state][1]._d[0]), trajectories[_state][1]._s[1], false};
+    struct target intended_target = {track->getLane(trajectories[_state][1]._d[0]), trajectories[_state][1]._s[1], -1};
     cout << "_state: " << _state_names[_state] << " speed:" << intended_target.speed << " lane:" << intended_target.lane << endl;
 
     return intended_target;
@@ -552,11 +552,11 @@ struct Behavior::target Behavior::generateBehavior(const Car& ego, const map<int
     updateLaneKinematics(ego, planning_duration);
 
     struct target intended_behavior = chooseNextState(ego, track, planning_duration);    
+    intended_behavior.lead_car = -1;
 
     if (_traffic_predicted[ego_lane].size() > 0) {
         if ((ego_s < _traffic_predicted[ego_lane][0]._s[0]) && (_traffic_predicted[ego_lane][0]._s_predicted[0] - ego_predicted_s < 30)) {
-            intended_behavior.too_close = true;
-            intended_behavior.speed = _traffic_predicted[ego_lane][0]._s_predicted[1];
+            intended_behavior.lead_car = _traffic_predicted[ego_lane][0]._id;
         } 
     }
 

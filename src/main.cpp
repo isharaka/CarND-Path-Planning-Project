@@ -401,7 +401,7 @@ int main() {
             struct Behavior::target target_behavior = behavior->generateBehavior(ego, cars, track, prediction_horizon_env);
 
             // TRAJECTORY GENERATION
-            trajectory->generateTrajectory(s_i, d_i, target_behavior, track);
+            trajectory->generateTrajectory(s_i, d_i, target_behavior, track, cars);
 
             // MOTION GENERATION
 #if 1
