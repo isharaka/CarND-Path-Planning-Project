@@ -49,7 +49,7 @@ The top level design can be followed by the following snippet in main.cpp
 
 *input from:* simulator, Track
 *outputs to:* Prediction, Behavior, Motion
-*files: *motion.cpp motion.h
+*files:* motion.cpp motion.h
 
 	/* Use previously generated s and d path points to constrcute previus path in terms of s & d */
     for (int i = N_POINTS_MOTION - _previous_path_x.size(); i < N_POINTS_MOTION; ++i) {
@@ -64,7 +64,7 @@ The top level design can be followed by the following snippet in main.cpp
 
 *input from:* Track, Motion, Trajectory
 *outputs to:* Prediction, Behavior, Motion
-*files: *prediction.cpp prediction.h
+*files:* prediction.cpp prediction.h
 
 	    vector<double> dxdy = track->getDxDy(s, true, true);
         vector<double> sxsy = track->getSxSy(s, true);
@@ -89,7 +89,7 @@ The top level design can be followed by the following snippet in main.cpp
 - Behavior module also detects the lead car and passes this information to Trajectory planner
 
 *input from:* Track, Motion, Track, Prediction
-*outputs to: *Trajectory
+*outputs to:* Trajectory
 *files:* behavior.cpp behavior.h
 
 	struct Behavior::target Behavior::generateBehavior(const Car& ego, const map<int, const Car>& cars, Track * track, double planning_duration)
@@ -117,7 +117,7 @@ The top level design can be followed by the following snippet in main.cpp
 - Uses the intended speed and lane from Behavior module to calculate a Jerk Minimization trajectory
 - Uses lead car information from Behavior module along with data from Prediction module to adjst target speed to avoid collision
 
-*input from: *Track, Motion, Behavior, Prediction
+*input from:* Track, Motion, Behavior, Prediction
 *outputs to:* Prediction (next iteration), Motion
 *files:* trajectory.cpp trajectory.h
 
@@ -127,8 +127,8 @@ The top level design can be followed by the following snippet in main.cpp
 - Continuity is ensured by using part of the previous path
 
 *input from:* Track, Trajectory
-*outputs to: *simulator, Motion (next iteration)
-*files: *motion.cpp motion.h
+*outputs to:* simulator, Motion (next iteration)
+*files:* motion.cpp motion.h
 
 #### Result
 
