@@ -3,7 +3,7 @@
 
 #include <vector>
 #include "behavior.h"
-#include "map.h"
+#include "track.h"
 
 using namespace std;
 
